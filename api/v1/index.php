@@ -89,12 +89,12 @@ $app->post('/register', function($request, $response, $args) use ($app) {
 });
 
 function moveUploadedFile($directory, $uploadedFile) {
-    // ตรวจสอบนามสกุลไฟล์
+    
     $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
-    $basename = bin2hex(random_bytes(8));  // สร้างชื่อไฟล์สุ่ม
-    $filename = sprintf('%s.%0.8s', $basename, $extension);  // ตั้งชื่อไฟล์
+    $basename = bin2hex(random_bytes(8));  
+    $filename = sprintf('%s.%0.8s', $basename, $extension);  
 
-    // ย้ายไฟล์ไปยังโฟลเดอร์ที่กำหนด
+    
     $uploadedFile->moveTo($directory . DIRECTORY_SEPARATOR . $filename);
 
     return $filename;
@@ -111,6 +111,82 @@ function generateUUID() {
         mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
     );
 }
+
+
+// login 
+
+
+$app->post('/login', function($request, $response, $args) {
+    $username = $request->getParsedBody()['username'];
+    $password = $request->getParsedBody()['password'];
+
+    $db = new DbHandler();
+    $result = $db->login($username, $password);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "เข้าสู่ระบบสำเร็จ";
+        $data["user"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+//add_address
+$app->post('/add_address', function($request, $response, $args) {
+    $id = $request->getParsedBody()['id'];
+    $address = $request->getParsedBody()['address'];
+
+    $db = new DbHandler();
+    $result = $db->add_address($id, $address);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "เพิ่มที่อยู่สำเร็จ";
+        $data["address"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "เพิ่มที่อยู่ไม่สำเร็จ";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+$app->post('/add_address', function($request, $response, $args) {
+    $id = $request->getParsedBody()['id'];
+    $address = $request->getParsedBody()['address'];
+
+    $db = new DbHandler();
+    $result = $db->add_address($id, $address);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "เพิ่มที่อยู่สำเร็จ";
+        $data["address"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "เพิ่มที่อยู่ไม่สำเร็จ";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
