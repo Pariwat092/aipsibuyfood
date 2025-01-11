@@ -155,20 +155,29 @@ $app->post('/add_address', function($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
-$app->post('/add_address', function($request, $response, $args) {
-    $id = $request->getParsedBody()['id'];
-    $address = $request->getParsedBody()['address'];
+$app->post('/addimage_banber', function($request, $response, $args) {
+   
+    $uploadedFiles = $request->getUploadedFiles();
+    $image = $uploadedFiles['image'];
+
+    if ($image->getError() === UPLOAD_ERR_OK) {
+        $directory = __DIR__ . '/image_banners';  
+        $filename = moveUploadedFile($directory, $image);  
+        $image_path = '/aipsibuyfood/api/v1/image_banners/' . $filename;  
+    } else {
+        return $response->withJson(['status' => 'error', 'message' => 'File upload error']);
+    }
 
     $db = new DbHandler();
-    $result = $db->add_address($id, $address);
+    $result = $db->get_banner($image_path);
 
     if ($result) {
         $data["res_code"] = "00";
-        $data["res_text"] = "เพิ่มที่อยู่สำเร็จ";
+        $data["res_text"] = "เพิ่มรูปภาพสำเร็จ";
         $data["address"] = $result; 
     } else {
         $data["res_code"] = "01";
-        $data["res_text"] = "เพิ่มที่อยู่ไม่สำเร็จ";
+        $data["res_text"] = "เพิ่มรูปภาพไม่สำเร็จ";
     }
 
     return echoRespnse($response, 200, $data);

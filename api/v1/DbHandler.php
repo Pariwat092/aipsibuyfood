@@ -65,7 +65,17 @@ public function add_address($id, $address) {
     }
 }
 
+public function get_banner($image_path) {
+   
+    $stmt = $this->conn->prepare("INSERT INTO `imagebanner_paths` (`file_path`) VALUES (?)");
 
+    $stmt->bind_param("s", $image_path); 
+    if ($stmt->execute()) {
+        return true;  
+    } else {
+        return false;  
+    }
+}
 
 
 
