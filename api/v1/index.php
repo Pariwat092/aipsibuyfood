@@ -63,10 +63,6 @@ $app->post('/register', function($request, $response, $args) use ($app) {
         return $response->withJson(['status' => 'error', 'message' => 'File upload error']);
     }
 
-    
-  
-
-   
     $dsaprs = password_hash($password, PASSWORD_BCRYPT);
 
    
@@ -155,6 +151,8 @@ $app->post('/add_address', function($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
+
+//addimage_banber
 $app->post('/addimage_banber', function($request, $response, $args) {
    
     $uploadedFiles = $request->getUploadedFiles();
