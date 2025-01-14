@@ -77,6 +77,82 @@ public function get_banner($image_path) {
     }
 }
 
+public function create_store(
+    $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,
+    $storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
+    $deliveryPerson, $promptpayNumber, $latitude, $longitude
+) {
+    
+    $stmt = $this->conn->prepare("
+        INSERT INTO `store_db` (
+            `store_id`, `user_id`, `store_name`, `description`, `store_phone`, 
+            `store_address`, `store_address_link`, `store_image`, 
+            `bank_account_number`, `account_holder_name`, `delivery_person`, 
+            `promptpay_number`, `latitude`, `longitude`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+
+    
+    $stmt->bind_param(
+        "ssssssssssiddi", 
+        $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,
+        $storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
+        $deliveryPerson, $promptpayNumber, $latitude, $longitude
+    );
+
+    
+    if ($stmt->execute()) {
+        return true; 
+    } else {
+        return false; 
+    }
+}
+
+//add product
+
+
+public function create_product(
+    $uuid, $storeId, $productName, $price,
+    $expirationDays, $productDescription, $imageUrl, $categoryId
+) {
+   
+    $stmt = $this->conn->prepare("
+        INSERT INTO `products` (
+            `product_id`, `store_id`, `product_name`, `price`, 
+            `expiration_days`, `description`, `image_url`, `category_id`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+
+    if (!$stmt) {
+        
+        error_log("SQL Prepare Failed: " . $this->conn->error);
+        return false;
+    }
+
+    
+    $stmt->bind_param(
+        "sssssssi", 
+        $uuid,       
+        $storeId,          
+        $productName,       
+        $price,             
+        $expirationDays,   
+        $productDescription,
+        $imageUrl,          
+        $categoryId        
+    );
+    
+
+    
+    if ($stmt->execute()) {
+        return true; 
+    } else {
+        
+        error_log("SQL Execute Failed: " . $stmt->error);
+        return false;
+    }
+}
+
 
 
 

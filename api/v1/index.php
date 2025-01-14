@@ -182,13 +182,110 @@ $app->post('/addimage_banber', function($request, $response, $args) {
 });
 
 
+// add_store
+
+
+$app->post('/register_store', function($request, $response, $args) use ($app) {
+   
+    
+    $userId = $request->getParsedBody()['user_id'];
+    $storeName = $request->getParsedBody()['store_name']; 
+    $description = $request->getParsedBody()['description'];
+    $storePhone = $request->getParsedBody()['store_phone'];
+    $storeAddress = $request->getParsedBody()['store_address'];
+    $storeAddressLink = $request->getParsedBody()['store_address_link'];
+    $uploadedFiles = $request->getUploadedFiles();
+    $image = $uploadedFiles['image'];
+    $bankAccountNumber = $request->getParsedBody()['bank_account_number'];
+    $accountHolderName = $request->getParsedBody()['account_holder_name'];
+    $deliveryPerson = $request->getParsedBody()['delivery_person'];
+    $promptpayNumber = $request->getParsedBody()['promptpay_number'];
+    $latitude = $request->getParsedBody()['latitude'];
+    $longitude = $request->getParsedBody()['longitude'];
 
 
 
+    if ($image->getError() === UPLOAD_ERR_OK) {
+        $directory = __DIR__ . '/image_store_all';  
+        $filename = moveUploadedFile($directory, $image);  
+        $image_path = '/aipsibuyfood/api/v1/image_store_all/' . $filename;  
+    } else {
+        return $response->withJson(['status' => 'error', 'message' => 'File upload error']);
+    }
+
+   
+
+   
+    $uuid = generateUUID();
+
+    $db = new DbHandler();
+
+ 
+    $result = $db->create_store(
+        $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,
+        $storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
+        $deliveryPerson, $promptpayNumber, $latitude, $longitude
+    );
+
+   
+    if ($result != NULL && $result == true) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "สมัครสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "สมัครไม่สำเร็จ";
+    }
+    return echoRespnse($response, 200, $data);
+});
 
 
 
+// add_product
 
+$app->post('/add_product', function($request, $response, $args) use ($app) {
+   
+    
+    $storeId = $request->getParsedBody()['store_id'];  
+    $productName = $request->getParsedBody()['product_name'];  
+    $price = $request->getParsedBody()['price'];  
+    $expirationDays = $request->getParsedBody()['expiration_days'];  
+    $productDescription = $request->getParsedBody()['description']; 
+    $uploadedFiles = $request->getUploadedFiles();  
+    $image = $uploadedFiles['image'];  
+    $categoryId = $request->getParsedBody()['category_id'];  
+    
+
+
+    if ($image->getError() === UPLOAD_ERR_OK) {
+        $directory = __DIR__ . '/Image_products';  
+        $filename = moveUploadedFile($directory, $image);  
+        $image_path = '/aipsibuyfood/api/v1/Image_products/' . $filename;  
+    } else {
+        return $response->withJson(['status' => 'error', 'message' => 'File upload error']);
+    }
+
+   
+
+   
+    $uuid = generateUUID();
+
+    $db = new DbHandler();
+
+ 
+    $result = $db->create_product(
+        $uuid, $storeId, $productName, $productDescription, $price,
+        $expirationDays, $image_path, $categoryId
+    );
+   
+    if ($result != NULL && $result == true) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "เพิ่มสินค้าสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "เพิ่มสินค้าไม่สำเร็จ";
+    }
+    return echoRespnse($response, 200, $data);
+});
 
 
 
