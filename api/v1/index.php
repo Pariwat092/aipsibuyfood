@@ -267,7 +267,7 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
    
 
    
-    $uuid = generateUUID();
+    $uuid = generatestoreId();
 
     $db = new DbHandler();
 
@@ -287,13 +287,148 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
     return echoRespnse($response, 200, $data);
 });
 
+function generatestoreId($prefix = 'p', $length = 12) {
+   
+    if ($length % 2 !== 0) {
+        $length++; 
+    }
+
+    
+    $randomString = strtoupper(bin2hex(random_bytes($length / 2)));
+    return $prefix . $randomString;
+}
 
 
 
 
 
+$app->post('/viewProductsall', function($request, $response, $args) use ($app) {
+
+    $db = new DbHandler(); 
+    
+    $result = $db->viewProducts(); 
+
+    $data = array();
+
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["products"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
 
 
+
+$app->post('/viewProductsdrinks', function($request, $response, $args) use ($app) {
+
+    $db = new DbHandler(); 
+    
+    $result = $db->viewProducts_drinks(); 
+
+    $data = array();
+
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["products"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+$app->post('/viewProducts_dessert', function($request, $response, $args) use ($app) {
+
+    $db = new DbHandler(); 
+    
+    $result = $db->viewProducts_dessert(); 
+
+    $data = array();
+
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["products"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+$app->post('/viewProducts_fresh_food', function($request, $response, $args) use ($app) {
+
+    $db = new DbHandler(); 
+    
+    $result = $db->viewProducts_fresh_food(); 
+
+    $data = array();
+
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["products"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+$app->post('/viewProducts_other', function($request, $response, $args) use ($app) {
+
+    $db = new DbHandler(); 
+    
+    $result = $db->viewProducts_other(); 
+
+    $data = array();
+
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["products"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+  
+
+$app->post('/searchProducts', function($request, $response, $args) use ($app) {
+   
+    $data = $request->getParsedBody();
+
+    
+    $searchTerm = $data['searchTerm'] ?? '';
+
+    
+    $db = new DbHandler();
+    $result = $db->searchProducts($searchTerm);
+
+    $data = array();
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["searchproducts"] = $result;
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
 
 
 
@@ -317,8 +452,8 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
 
 
 
-
-
-
 $app->run();
+
+
+
 ?>

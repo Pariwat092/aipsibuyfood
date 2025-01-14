@@ -77,9 +77,7 @@ public function get_banner($image_path) {
     }
 }
 
-public function create_store(
-    $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,
-    $storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
+public function create_store( $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,$storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
     $deliveryPerson, $promptpayNumber, $latitude, $longitude
 ) {
     
@@ -111,45 +109,215 @@ public function create_store(
 //add product
 
 
-public function create_product(
-    $uuid, $storeId, $productName, $price,
-    $expirationDays, $productDescription, $imageUrl, $categoryId
-) {
+public function create_product( $uuid, $storeId, $productName, $price, $expirationDays, $productDescription, $imageUrl, $categoryId) {
    
     $stmt = $this->conn->prepare("
-        INSERT INTO `products` (
-            `product_id`, `store_id`, `product_name`, `price`, 
-            `expiration_days`, `description`, `image_url`, `category_id`
+        INSERT INTO `products` ( `product_id`, `store_id`, `product_name`, `price`, `expiration_days`, `description`, `image_url`, `category_id`
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
-    if (!$stmt) {
-        
-        error_log("SQL Prepare Failed: " . $this->conn->error);
-        return false;
-    }
+    $stmt->bind_param( "sssssssi",  $uuid, $storeId ,$productName ,$price ,$expirationDays ,$productDescription ,$imageUrl, $categoryId        
+);
 
-    
-    $stmt->bind_param(
-        "sssssssi", 
-        $uuid,       
-        $storeId,          
-        $productName,       
-        $price,             
-        $expirationDays,   
-        $productDescription,
-        $imageUrl,          
-        $categoryId        
-    );
-    
+if ($stmt->execute()) {
+    return true; 
+} else {
+    error_log("SQL Execute Failed: " . $stmt->error);
+    return false;
+}
+}
 
-    
-    if ($stmt->execute()) {
-        return true; 
+
+public function viewProducts() {
+    $stmt = $this->conn->prepare("SELECT * FROM `products`");
+    $stmt->execute(); 
+    $result = $stmt->get_result(); 
+    $output = array(); 
+
+    if($result->num_rows > 0){
+        while($res = $result->fetch_assoc()) {
+            $response = array(
+                "product_id" => $res['product_id'],
+                "store_id" => $res['store_id'],
+                "product_name" => $res['product_name'],
+                "price" => $res['price'],
+                "expiration_days" => $res['expiration_days'],
+                "description" => $res['description'],
+                "image_url" => $res['image_url'],
+                "category_id" => $res['category_id'],
+                "created_at" => $res['created_at'],
+                "updated_at" => $res['updated_at']
+            );
+            $output[] = $response; 
+        }
+        $stmt->close(); 
+        return $output; 
     } else {
-        
-        error_log("SQL Execute Failed: " . $stmt->error);
-        return false;
+        $stmt->close(); 
+        return NULL; 
+    }
+}
+public function viewProducts_drinks() {
+    $category_id = 1; 
+    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
+    $stmt->bind_param("i", $category_id);
+    $stmt->execute();
+    
+    $result = $stmt->get_result();
+    $output = array();
+
+if ($result->num_rows > 0) {
+    while ($res = $result->fetch_assoc()) {
+        $response = array(
+            "product_id" => $res['product_id'],
+            "store_id" => $res['store_id'],
+            "product_name" => $res['product_name'],
+            "price" => $res['price'],
+            "expiration_days" => $res['expiration_days'],
+            "description" => $res['description'],
+            "image_url" => $res['image_url'],
+            "category_id" => $res['category_id'],
+            "created_at" => $res['created_at'],
+            "updated_at" => $res['updated_at']
+        );
+        $output[] = $response;
+    }
+    $stmt->close();
+    return $output;
+} else {
+    $stmt->close();
+    return NULL;
+}
+}
+public function viewProducts_dessert() {
+    $category_id = 2; 
+    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
+    $stmt->bind_param("i", $category_id);
+    $stmt->execute();
+    
+    $result = $stmt->get_result();
+    $output = array();
+
+if ($result->num_rows > 0) {
+    while ($res = $result->fetch_assoc()) {
+        $response = array(
+            "product_id" => $res['product_id'],
+            "store_id" => $res['store_id'],
+            "product_name" => $res['product_name'],
+            "price" => $res['price'],
+            "expiration_days" => $res['expiration_days'],
+            "description" => $res['description'],
+            "image_url" => $res['image_url'],
+            "category_id" => $res['category_id'],
+            "created_at" => $res['created_at'],
+            "updated_at" => $res['updated_at']
+        );
+        $output[] = $response;
+    }
+    $stmt->close();
+    return $output;
+} else {
+    $stmt->close();
+    return NULL;
+}
+}
+public function viewProducts_fresh_food() {
+    $category_id = 3; 
+    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
+    $stmt->bind_param("i", $category_id);
+    $stmt->execute();
+    
+    $result = $stmt->get_result();
+    $output = array();
+
+if ($result->num_rows > 0) {
+    while ($res = $result->fetch_assoc()) {
+        $response = array(
+            "product_id" => $res['product_id'],
+            "store_id" => $res['store_id'],
+            "product_name" => $res['product_name'],
+            "price" => $res['price'],
+            "expiration_days" => $res['expiration_days'],
+            "description" => $res['description'],
+            "image_url" => $res['image_url'],
+            "category_id" => $res['category_id'],
+            "created_at" => $res['created_at'],
+            "updated_at" => $res['updated_at']
+        );
+        $output[] = $response;
+    }
+    $stmt->close();
+    return $output;
+} else {
+    $stmt->close();
+    return NULL;
+}
+}
+public function viewProducts_other() {
+    $category_id = 4; 
+    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
+    $stmt->bind_param("i", $category_id);
+    $stmt->execute();
+    
+    $result = $stmt->get_result();
+    $output = array();
+
+if ($result->num_rows > 0) {
+    while ($res = $result->fetch_assoc()) {
+        $response = array(
+            "product_id" => $res['product_id'],
+            "store_id" => $res['store_id'],
+            "product_name" => $res['product_name'],
+            "price" => $res['price'],
+            "expiration_days" => $res['expiration_days'],
+            "description" => $res['description'],
+            "image_url" => $res['image_url'],
+            "category_id" => $res['category_id'],
+            "created_at" => $res['created_at'],
+            "updated_at" => $res['updated_at']
+        );
+        $output[] = $response;
+    }
+    $stmt->close();
+    return $output;
+} else {
+    $stmt->close();
+    return NULL;
+}
+}
+public function searchProducts($searchTerm) {
+   
+    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `product_name` LIKE ?");
+    
+   
+    $searchTerm = "%" . $searchTerm . "%";
+    $stmt->bind_param("s", $searchTerm);
+    $stmt->execute();
+    
+    $result = $stmt->get_result();
+    $output = array();
+
+    if ($result->num_rows > 0) {
+        while ($res = $result->fetch_assoc()) {
+            $response = array(
+                "product_id" => $res['product_id'],
+                "store_id" => $res['store_id'],
+                "product_name" => $res['product_name'],
+                "price" => $res['price'],
+                "expiration_days" => $res['expiration_days'],
+                "description" => $res['description'],
+                "image_url" => $res['image_url'],
+                "category_id" => $res['category_id'],
+                "created_at" => $res['created_at'],
+                "updated_at" => $res['updated_at']
+            );
+            $output[] = $response;
+        }
+        $stmt->close();
+        return $output;
+    } else {
+        $stmt->close();
+        return NULL;
     }
 }
 
@@ -158,6 +326,12 @@ public function create_product(
 
 
 }
+
+
+
+
+
+
 
 
 
