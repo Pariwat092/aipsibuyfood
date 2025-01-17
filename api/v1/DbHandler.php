@@ -78,24 +78,23 @@ public function get_banner($image_path) {
 }
 
 public function create_store( $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,$storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
-    $deliveryPerson, $promptpayNumber, $latitude, $longitude
+    $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bank_Name
 ) {
     
-    $stmt = $this->conn->prepare("
-        INSERT INTO `store_db` (
+    $stmt = $this->conn->prepare(" INSERT INTO `store_db` (
             `store_id`, `user_id`, `store_name`, `description`, `store_phone`, 
             `store_address`, `store_address_link`, `store_image`, 
             `bank_account_number`, `account_holder_name`, `delivery_person`, 
-            `promptpay_number`, `latitude`, `longitude`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `promptpay_number`, `latitude`, `longitude`, `bakn_name`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)
     ");
 
     
     $stmt->bind_param(
-        "ssssssssssiddi", 
+        "ssssssssssiddis", 
         $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,
         $storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
-        $deliveryPerson, $promptpayNumber, $latitude, $longitude
+        $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bank_Name
     );
 
     
@@ -109,14 +108,15 @@ public function create_store( $uuid, $userId, $storeName, $description, $storePh
 //add product
 
 
-public function create_product( $uuid, $storeId, $productName, $price, $expirationDays, $productDescription, $imageUrl, $categoryId) {
+public function create_product( $uuid, $storeId, $productName, $price,$expirationDays, $productDescription, 
+$image_path, $categoryId) {
    
-    $stmt = $this->conn->prepare("
-        INSERT INTO `products` ( `product_id`, `store_id`, `product_name`, `price`, `expiration_days`, `description`, `image_url`, `category_id`
+    $stmt = $this->conn->prepare(" INSERT INTO `products` ( `product_id`, `store_id`, `product_name`, `price`, `expiration_days`, `description`, `image_url`, `category_id`
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
-    $stmt->bind_param( "sssssssi",  $uuid, $storeId ,$productName ,$price ,$expirationDays ,$productDescription ,$imageUrl, $categoryId        
+    $stmt->bind_param( "sssdsssi", $uuid, $storeId, $productName, $price,$expirationDays, $productDescription, 
+    $image_path, $categoryId       
 );
 
 if ($stmt->execute()) {

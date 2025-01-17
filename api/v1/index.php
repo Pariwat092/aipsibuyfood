@@ -193,6 +193,7 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
     $accountHolderName = $request->getParsedBody()['account_holder_name'];
     $deliveryPerson = $request->getParsedBody()['delivery_person'];
     $promptpayNumber = $request->getParsedBody()['promptpay_number'];
+    $bank_Name = $request->getParsedBody()['bankname'];
     $latitude = $request->getParsedBody()['latitude'];
     $longitude = $request->getParsedBody()['longitude'];
 
@@ -217,7 +218,7 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
     $result = $db->create_store(
         $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,
         $storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
-        $deliveryPerson, $promptpayNumber, $latitude, $longitude
+        $deliveryPerson, $promptpayNumber, $latitude, $longitude,$bank_Name
     );
 
    
@@ -230,6 +231,9 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
     }
     return echoRespnse($response, 200, $data);
 });
+
+
+
 
 
 
@@ -265,9 +269,8 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
     $db = new DbHandler();
 
  
-    $result = $db->create_product(
-        $uuid, $storeId, $productName, $productDescription, $price,
-        $expirationDays, $image_path, $categoryId
+    $result = $db->create_product( $uuid, $storeId, $productName, $price,$expirationDays, $productDescription, 
+        $image_path, $categoryId
     );
    
     if ($result != NULL && $result == true) {
@@ -279,6 +282,8 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
     }
     return echoRespnse($response, 200, $data);
 });
+
+
 
 function generatestoreId($prefix = 'p', $length = 12) {
    
