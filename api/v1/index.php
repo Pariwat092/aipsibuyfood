@@ -19,13 +19,6 @@ use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Factory\AppFactory;
 
 
-
-
-
-
-
-
-
 $app = AppFactory::create();
 $app->setBasePath('/aipsibuyfood/api/v1');
 
