@@ -11,13 +11,17 @@ header('Access-Control-Max-Age: 1000');
 header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
 require_once './DbHandler.php';
 require_once '../include/Config.php';
-require '../../vendor/autoload.php';
+// require '../vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+
 
 
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Factory\AppFactory;
-
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 $app = AppFactory::create();
 $app->setBasePath('/aipsibuyfood/api/v1');
@@ -37,16 +41,21 @@ $app->get('/checkapi', function($request, $response, $args) use ($app) {
 
 
 
-// สมัครสมาชิก
+
 $app->post('/register', function($request, $response, $args) use ($app) {
-   
-    
     $username = $request->getParsedBody()['username'];
     $password = $request->getParsedBody()['password']; 
     $email = $request->getParsedBody()['email'];
     $phone = $request->getParsedBody()['phone'];
     $uploadedFiles = $request->getUploadedFiles();
     $image = $uploadedFiles['image'];
+
+ 
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $data["res_code"] = "01";
+        $data["res_text"] = "รูปแบบอีเมลไม่ถูกต้อง";
+        return echoRespnse($response, 200, $data);
+    }
 
     if ($image->getError() === UPLOAD_ERR_OK) {
         $directory = __DIR__ . '/image_profile_user';  
@@ -58,24 +67,79 @@ $app->post('/register', function($request, $response, $args) use ($app) {
 
     $dsaprs = password_hash($password, PASSWORD_BCRYPT);
 
-   
     $uuid = generateUUID();
 
     $db = new DbHandler();
 
- 
+  
     $result = $db->create_members($uuid, $username, $dsaprs, $email, $phone, $image_path);
 
-   
-    if ($result != NULL && $result == true) {
-        $data["res_code"] = "00";
-        $data["res_text"] = "สมัครสำเร็จ";
+    if ($result === true) {
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'sibuyfoodnoti@gmail.com';  
+            $mail->Password = 'kxsi xipr gdkg ocrm';     
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+
+            $mail->setFrom('sibuyfoodnoti@gmail.com', 'sibuyfood');
+            $mail->addAddress($email);  
+
+            $mail->isHTML(true);
+            $mail->Subject = 'ยืนยันการสมัครสมาชิก';
+            $mail->Body    = 'กรุณาคลิกลิงค์นี้เพื่อยืนยันตัวตนของคุณ: <a href="http://localhost/aipsibuyfood/api/v1/verifyuser?token=' . $uuid . '">ยืนยันตัวตน</a>';
+            $mail->send();
+
+            $data["res_code"] = "00";
+            $data["res_text"] = "สมัครสำเร็จและส่งอีเมลยืนยันแล้ว";
+        } catch (Exception $e) {
+            $data["res_code"] = "01";
+            $data["res_text"] = "สมัครสำเร็จ แต่ไม่สามารถส่งอีเมลยืนยันได้: " . $mail->ErrorInfo;
+        }
     } else {
-        $data["res_code"] = "01";
-        $data["res_text"] = "สมัครไม่สำเร็จ";
+      
+        if ($result == 'username_exists') {
+            $data["res_code"] = "01";
+            $data["res_text"] = "ชื่อผู้ใช้ซ้ำ";
+        } elseif ($result == 'email_exists') {
+            $data["res_code"] = "01";
+            $data["res_text"] = "อีเมลซ้ำ";
+        } else {
+            $data["res_code"] = "01";
+            $data["res_text"] = "สมัครไม่สำเร็จ";
+        }
     }
+
     return echoRespnse($response, 200, $data);
 });
+
+$app->get('/verifyuser', function($request, $response, $args) {
+    $userid = $request->getQueryParams()['token']; 
+
+    $db = new DbHandler();
+
+   
+    $result = $db->verifyUser($userid);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "ยืนยันตัวตนสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่พบ IDนี้ในฐานข้อมูล หรือไม่สามารถยืนยันตัวตนได้";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+
+
+
+
 
 function moveUploadedFile($directory, $uploadedFile) {
     
@@ -102,7 +166,7 @@ function generateUUID() {
 }
 
 
-// login 
+
 
 
 $app->post('/login', function($request, $response, $args) {
@@ -112,17 +176,21 @@ $app->post('/login', function($request, $response, $args) {
     $db = new DbHandler();
     $result = $db->login($username, $password);
 
-    if ($result) {
+ 
+    if ($result['res_code'] == "00") {
+        
         $data["res_code"] = "00";
-        $data["res_text"] = "เข้าสู่ระบบสำเร็จ";
-        $data["user"] = $result; 
+        $data["res_text"] = $result['res_text']; 
+        $data["user"] = $result["user"];
     } else {
-        $data["res_code"] = "01";
-        $data["res_text"] = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+       
+        $data["res_code"] = $result['res_code'];
+        $data["res_text"] = $result['res_text'];
     }
 
     return echoRespnse($response, 200, $data);
 });
+
 
 //add_address
 $app->post('/add_address', function($request, $response, $args) {
@@ -180,9 +248,10 @@ $app->post('/addimage_banber', function($request, $response, $args) {
 
 $app->post('/register_store', function($request, $response, $args) use ($app) {
    
-    
-    $userId = $request->getParsedBody()['user_id'];
     $storeName = $request->getParsedBody()['store_name']; 
+    $ownerName = $request->getParsedBody()['owner_name'];  
+    $email = $request->getParsedBody()['email'];  
+    $password = $request->getParsedBody()['password'];  
     $description = $request->getParsedBody()['description'];
     $storePhone = $request->getParsedBody()['store_phone'];
     $storeAddress = $request->getParsedBody()['store_address'];
@@ -193,11 +262,9 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
     $accountHolderName = $request->getParsedBody()['account_holder_name'];
     $deliveryPerson = $request->getParsedBody()['delivery_person'];
     $promptpayNumber = $request->getParsedBody()['promptpay_number'];
-    $bank_Name = $request->getParsedBody()['bankname'];
+    $bankName = $request->getParsedBody()['bank_name'];  
     $latitude = $request->getParsedBody()['latitude'];
     $longitude = $request->getParsedBody()['longitude'];
-
-
 
     if ($image->getError() === UPLOAD_ERR_OK) {
         $directory = __DIR__ . '/image_store_all';  
@@ -207,21 +274,14 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
         return $response->withJson(['status' => 'error', 'message' => 'File upload error']);
     }
 
-   
-
-   
-    $uuid = generateUUID();
-
+    $uuid = ggenerateastore();
+    $dsaprs = password_hash($password, PASSWORD_BCRYPT);
     $db = new DbHandler();
 
- 
     $result = $db->create_store(
-        $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,
-        $storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
-        $deliveryPerson, $promptpayNumber, $latitude, $longitude,$bank_Name
+      
     );
 
-   
     if ($result != NULL && $result == true) {
         $data["res_code"] = "00";
         $data["res_text"] = "สมัครสำเร็จ";
@@ -231,6 +291,17 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
     }
     return echoRespnse($response, 200, $data);
 });
+
+function generateastore() {
+    return 'S' . sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), 
+        mt_rand(0, 0xffff), 
+        mt_rand(0, 0x0fff) | 0x4000, 
+        mt_rand(0, 0x3fff) | 0x8000, 
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
+}
+
 
 
 

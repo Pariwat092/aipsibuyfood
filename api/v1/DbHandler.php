@@ -14,43 +14,102 @@ class DbHandler {
    
 // register
 
-    public function create_members($uuid, $username, $dsaprs, $email, $phone, $image_path) {
-      
-      $stmt = $this->conn->prepare("INSERT INTO `users`(`id`, `username`, `password`, `email`, `phone`, `profile_image`) VALUES (?, ?, ?, ?, ?, ?)");
+public function create_members($uuid, $username, $dsaprs, $email, $phone, $image_path) {
   
-      
-      $stmt->bind_param("ssssss", $uuid, $username, $dsaprs, $email, $phone, $image_path);
-  
-      
-      if ($stmt->execute()) {
-          return true;
-      } else {
-          return false;
-      }
-  }
+    $stmt = $this->conn->prepare("SELECT id FROM `user_customer` WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+   
+    if ($result->num_rows > 0) {
+        return 'username_exists';  
+    }
+
+    
+    $stmt = $this->conn->prepare("SELECT id FROM `user_customer` WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+   
+    if ($result->num_rows > 0) {
+        return 'email_exists';  
+    }
+
+   
+    $stmt = $this->conn->prepare("INSERT INTO `user_customer`(`id`, `username`, `password`, `email`, `phone`, `profile_image`) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssss", $uuid, $username, $dsaprs, $email, $phone, $image_path);
+
+    if ($stmt->execute()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+public function verifyUser( $userid ) {
+    $stmt = $this->conn->prepare("UPDATE user_customer SET status = 1 WHERE id = ?");
+    $stmt->bind_param("s", $userid);
+
+
+    if ($stmt->execute()) {
+        return true; 
+    }
+    return false; 
+
+    
+}
+
+
+
+
   
   // login
   public function login($username, $password) {
-    $stmt = $this->conn->prepare("SELECT `id`, `username`, `email`, `phone`, `profile_image`, `address`, `password` FROM `users` WHERE `username` = ?");
+  
+    $stmt = $this->conn->prepare("SELECT `id`, `username`, `email`, `phone`, `profile_image`, `address`, `password`, `status` FROM `user_customer` WHERE `username` = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($row = $result->fetch_assoc()) {
+     
+        if ($row['status'] == 0) {
+            return [
+                "res_code" => "01",
+                "res_text" => "ยังไม่ยืนยันตัวตน"
+            ];
+        }
+
+       
         if (password_verify($password, $row['password'])) {
             return [
-                "id" => $row['id'],
-                "username" => $row['username'],
-                "email" => $row['email'],
-                "phone" => $row['phone'],
-                "address" => $row['address'],
-                "profile_image" => $row['profile_image']
-            ]; 
+                "res_code" => "00",
+                "res_text" => "เข้าสู่ระบบสำเร็จ",
+                "user" => [
+                    "id" => $row['id'],
+                    "username" => $row['username'],
+                    "email" => $row['email'],
+                    "phone" => $row['phone'],
+                    "address" => $row['address'],
+                    "profile_image" => $row['profile_image']
+                ]
+            ];
+        } else {
+            return [
+                "res_code" => "01",
+                "res_text" => "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+            ];
         }
     }
 
-    return false; 
+    return [
+        "res_code" => "01",
+        "res_text" => "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+    ];
 }
+
 
 //add address
 public function add_address($id, $address) {
@@ -77,33 +136,35 @@ public function get_banner($image_path) {
     }
 }
 
-public function create_store( $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,$storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
-    $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bank_Name
+public function create_store(
+    $uuid, $userId, $storeName, $ownerName, $email, $password, $description, 
+    $storePhone, $storeAddress, $storeAddressLink, $image_path, $bankAccountNumber, 
+    $accountHolderName, $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bank_Name
 ) {
-    
-    $stmt = $this->conn->prepare(" INSERT INTO `store_db` (
-            `store_id`, `user_id`, `store_name`, `description`, `store_phone`, 
-            `store_address`, `store_address_link`, `store_image`, 
+    $stmt = $this->conn->prepare(" 
+        INSERT INTO `store_db` (
+            `store_id`, `user_id`, `store_name`, `owner_name`, `email`, `password`, `description`, 
+            `store_phone`, `store_address`, `store_address_link`, `store_image`, 
             `bank_account_number`, `account_holder_name`, `delivery_person`, 
-            `promptpay_number`, `latitude`, `longitude`, `bakn_name`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)
+            `promptpay_number`, `latitude`, `longitude`, `bank_name`
+        ) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
-    
     $stmt->bind_param(
-        "ssssssssssiddis", 
-        $uuid, $userId, $storeName, $description, $storePhone, $storeAddress,
-        $storeAddressLink, $image_path, $bankAccountNumber, $accountHolderName,
-        $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bank_Name
+        "ssssssssssiddisis", 
+        $uuid, $userId, $storeName, $ownerName, $email, $password, $description, 
+        $storePhone, $storeAddress, $storeAddressLink, $image_path, $bankAccountNumber, 
+        $accountHolderName, $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bank_Name
     );
 
-    
     if ($stmt->execute()) {
         return true; 
     } else {
         return false; 
     }
 }
+
 
 //add product
 
