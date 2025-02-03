@@ -167,8 +167,6 @@ function generateUUID() {
 
 
 
-
-
 $app->post('/login', function($request, $response, $args) {
     $username = $request->getParsedBody()['username'];
     $password = $request->getParsedBody()['password'];
@@ -190,6 +188,7 @@ $app->post('/login', function($request, $response, $args) {
 
     return echoRespnse($response, 200, $data);
 });
+
 
 
 //add_address

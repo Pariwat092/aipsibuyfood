@@ -68,7 +68,7 @@ public function verifyUser( $userid ) {
   // login
   public function login($username, $password) {
   
-    $stmt = $this->conn->prepare("SELECT `id`, `username`, `email`, `phone`, `profile_image`, `address`, `password`, `status` FROM `user_customer` WHERE `username` = ?");
+    $stmt = $this->conn->prepare("SELECT `id`,  `password`, `status` FROM `user_customer` WHERE `username` = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -89,11 +89,6 @@ public function verifyUser( $userid ) {
                 "res_text" => "เข้าสู่ระบบสำเร็จ",
                 "user" => [
                     "id" => $row['id'],
-                    "username" => $row['username'],
-                    "email" => $row['email'],
-                    "phone" => $row['phone'],
-                    "address" => $row['address'],
-                    "profile_image" => $row['profile_image']
                 ]
             ];
         } else {
