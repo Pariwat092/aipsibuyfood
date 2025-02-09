@@ -39,8 +39,7 @@ $app->get('/checkapi', function($request, $response, $args) use ($app) {
     return echoRespnse($response, 200, $data);
 });
 
-
-
+// user_customer//////////////////////
 
 $app->post('/register', function($request, $response, $args) use ($app) {
     $username = $request->getParsedBody()['username'];
@@ -211,8 +210,9 @@ $app->post('/add_address', function($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
+// // user_customer//////////////////////
 
-//addimage_banber
+// //addimage_banber
 $app->post('/addimage_banber', function($request, $response, $args) {
    
     $uploadedFiles = $request->getUploadedFiles();
@@ -242,7 +242,7 @@ $app->post('/addimage_banber', function($request, $response, $args) {
 });
 
 
-// add_store
+// function_store
 
 
 $app->post('/register_store', function($request, $response, $args) use ($app) {
