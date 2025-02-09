@@ -242,8 +242,10 @@ $app->post('/addimage_banber', function($request, $response, $args) {
 });
 
 
-// function_store
 
+
+
+// function_store
 
 $app->post('/register_store', function($request, $response, $args) use ($app) {
    
@@ -256,7 +258,7 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
     $storeAddress = $request->getParsedBody()['store_address'];
     $storeAddressLink = $request->getParsedBody()['store_address_link'];
     $uploadedFiles = $request->getUploadedFiles();
-    $image = $uploadedFiles['image'];
+    $image = $uploadedFiles['store_image'];
     $bankAccountNumber = $request->getParsedBody()['bank_account_number'];
     $accountHolderName = $request->getParsedBody()['account_holder_name'];
     $deliveryPerson = $request->getParsedBody()['delivery_person'];
@@ -265,6 +267,7 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
     $latitude = $request->getParsedBody()['latitude'];
     $longitude = $request->getParsedBody()['longitude'];
 
+    
     if ($image->getError() === UPLOAD_ERR_OK) {
         $directory = __DIR__ . '/image_store_all';  
         $filename = moveUploadedFile($directory, $image);  
@@ -273,11 +276,13 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
         return $response->withJson(['status' => 'error', 'message' => 'File upload error']);
     }
 
-    $uuid = ggenerateastore();
+    $uuids = generateastore();
     $dsaprs = password_hash($password, PASSWORD_BCRYPT);
     $db = new DbHandler();
 
-    $result = $db->create_store(
+    $result = $db->create_store( $uuids,$storeName, $ownerName, $email, $dsaprs, $description, 
+        $storePhone, $storeAddress, $storeAddressLink, $image_path, $bankAccountNumber, 
+        $accountHolderName, $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bankName
       
     );
 
@@ -367,9 +372,12 @@ function generatestoreId($prefix = 'p', $length = 12) {
 }
 
 
+// function_store /////
 
 
 
+
+// function_app
 $app->post('/viewProductsall', function($request, $response, $args) use ($app) {
 
     $db = new DbHandler(); 
@@ -498,7 +506,7 @@ $app->post('/searchProducts', function($request, $response, $args) use ($app) {
     return echoRespnse($response, 200, $data);
 });
 
-
+// function_app
 
 
 // ***************************************************************************************************

@@ -131,13 +131,15 @@ public function get_banner($image_path) {
     }
 }
 
+//store
 public function create_store(
-    $uuid, $userId, $storeName, $ownerName, $email, $password, $description, 
-    $storePhone, $storeAddress, $storeAddressLink, $image_path, $bankAccountNumber, 
-    $accountHolderName, $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bank_Name
+    $uuids,$storeName, $ownerName, $email, $dsaprs, $description, 
+        $storePhone, $storeAddress, $storeAddressLink, $image_path, $bankAccountNumber, 
+        $accountHolderName, $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bankName
+   
 ) {
     $stmt = $this->conn->prepare(" 
-        INSERT INTO `store_db` (
+        INSERT INTO `user_store` (
             `store_id`, `user_id`, `store_name`, `owner_name`, `email`, `password`, `description`, 
             `store_phone`, `store_address`, `store_address_link`, `store_image`, 
             `bank_account_number`, `account_holder_name`, `delivery_person`, 
