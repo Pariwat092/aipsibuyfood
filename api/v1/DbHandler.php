@@ -133,52 +133,45 @@ public function get_banner($image_path) {
 
 
 //store
-public function create_store($uuid, $storeName, $ownerName, $email, $dsaprs, $description, 
-    $storePhone, $storeAddress, $storeAddressLink, $image_path, $bankAccountNumber, 
-    $accountHolderName, $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bankName) {
+public function create_store($storeId, $storeName, $ownerName, $email, $hashedPassword, 
+                            $description, $storePhone, $storeAddress, $storeAddressLink, 
+                            $image_path, $bank_name, $bank_account_number, $account_holder_name, 
+                            $promptpay_number, $delivery_person, $latitude, $longitude) {
     
-    // ตรวจสอบว่า store_name ซ้ำหรือไม่
-    $stmt = $this->conn->prepare("SELECT store_id FROM `user_store` WHERE LOWER(store_name) = LOWER(?)");
-    $stmt->bind_param("s", $storeName);
-    
-    $stmt->execute();
-    $result = $stmt->get_result();
+    try {
+        // ตรวจสอบชื่อร้านค้าซ้ำ
+        $stmt = $this->conn->prepare("SELECT store_id FROM `user_store` WHERE LOWER(store_name) = LOWER(?)");
+        $stmt->bind_param("s", $storeName);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows > 0) return 'store_name_exists';
 
-    if ($result->num_rows > 0) {
-        return 'store_name_exists';  // ชื่อร้านค้าซ้ำ
-    }
+        // ตรวจสอบอีเมลซ้ำ
+        $stmt = $this->conn->prepare("SELECT store_id FROM `user_store` WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows > 0) return 'email_exists';
 
-    // ตรวจสอบว่า email ซ้ำหรือไม่
-    $stmt = $this->conn->prepare("SELECT store_id FROM `user_store` WHERE email = ?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
+        // เพิ่มข้อมูลร้านค้า
+        $stmt = $this->conn->prepare("
+            INSERT INTO `user_store` 
+            (`store_id`, `store_name`, `owner_name`, `email`, `password`, `description`, 
+             `store_phone`, `store_address`, `store_address_link`, `store_image`, `bank_name`, 
+             `bank_account_number`, `account_holder_name`, `promptpay_number`, `delivery_person`, 
+             `latitude`, `longitude`) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
 
-    if ($result->num_rows > 0) {
-        return 'email_exists';  // อีเมลซ้ำ
-    }
+        $stmt->bind_param("ssssssssssssssidd", $storeId, $storeName, $ownerName, $email, 
+                          $hashedPassword, $description, $storePhone, $storeAddress, 
+                          $storeAddressLink, $image_path, $bank_name, $bank_account_number, 
+                          $account_holder_name, $promptpay_number, $delivery_person, 
+                          $latitude, $longitude);
 
-    // เพิ่มข้อมูลร้านค้าลงในฐานข้อมูล
-    $stmt = $this->conn->prepare("INSERT INTO `user_store` 
-    (`store_id`, `store_name`, `owner_name`, `email`, `password`, `description`, `store_phone`,  
-    `store_address`, `store_address_link`, `account_holder_name`, `store_image`, `bank_account_number`, `bank_name`, 
-    `delivery_person`, `promptpay_number`, `latitude`, `longitude`) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-$stmt->bind_param(
-    "ssssssssssssissdd", 
-    $uuid, $storeName, $ownerName, $email, $dsaprs, $description, 
-    $storePhone, $storeAddress, $storeAddressLink,$accountHolderName, $image_path, 
-    $bankAccountNumber, $bankName,  $deliveryPerson, 
-    $promptpayNumber, $latitude, $longitude
-);
-
-
-
-    if ($stmt->execute()) {
-        return true;  // สร้างร้านค้าเรียบร้อยแล้ว
-    } else {
-        return false;  // เกิดข้อผิดพลาดในการสร้างร้านค้า
+        return $stmt->execute() ? true : false;
+    } catch (Exception $e) {
+        return false;
     }
 }
 
