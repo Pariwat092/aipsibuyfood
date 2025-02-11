@@ -248,53 +248,99 @@ $app->post('/addimage_banber', function($request, $response, $args) {
 // function_store
 
 $app->post('/register_store', function($request, $response, $args) use ($app) {
-   
+    // รับข้อมูลจาก request
     $storeName = $request->getParsedBody()['store_name']; 
     $ownerName = $request->getParsedBody()['owner_name'];  
     $email = $request->getParsedBody()['email'];  
-    $password = $request->getParsedBody()['password'];  
+    $password = $request->getParsedBody()['password'];
     $description = $request->getParsedBody()['description'];
     $storePhone = $request->getParsedBody()['store_phone'];
     $storeAddress = $request->getParsedBody()['store_address'];
     $storeAddressLink = $request->getParsedBody()['store_address_link'];
     $uploadedFiles = $request->getUploadedFiles();
-    $image = $uploadedFiles['store_image'];
+   
     $bankAccountNumber = $request->getParsedBody()['bank_account_number'];
     $accountHolderName = $request->getParsedBody()['account_holder_name'];
     $deliveryPerson = $request->getParsedBody()['delivery_person'];
     $promptpayNumber = $request->getParsedBody()['promptpay_number'];
-    $bankName = $request->getParsedBody()['bank_name'];  
     $latitude = $request->getParsedBody()['latitude'];
     $longitude = $request->getParsedBody()['longitude'];
+    $bankName = $request->getParsedBody()['bank_name'];
+
+  
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $data["res_code"] = "01";
+        $data["res_text"] = "รูปแบบอีเมลไม่ถูกต้อง";
+        return echoRespnse($response, 200, $data);
+    }
+
+   
+    $dsaprs = password_hash($password, PASSWORD_BCRYPT);
 
     
+    $uuid = generateastore();
+
+  
+    $uploadedFiles = $request->getUploadedFiles();
+    $image = $uploadedFiles['store_image'];
+
     if ($image->getError() === UPLOAD_ERR_OK) {
         $directory = __DIR__ . '/image_store_all';  
-        $filename = moveUploadedFile($directory, $image);  
-        $image_path = '/aipsibuyfood/api/v1/image_store_all/' . $filename;  
+        $filename = moveUploadedFile($directory, $image);
+        $image_path = '/aipsibuyfood/api/v1/image_store_all/' . $filename;
     } else {
         return $response->withJson(['status' => 'error', 'message' => 'File upload error']);
     }
 
-    $uuids = generateastore();
-    $dsaprs = password_hash($password, PASSWORD_BCRYPT);
     $db = new DbHandler();
-
-    $result = $db->create_store( $uuids,$storeName, $ownerName, $email, $dsaprs, $description, 
+    $result = $db->create_store($uuid, $storeName, $ownerName, $email, $dsaprs, $description, 
         $storePhone, $storeAddress, $storeAddressLink, $image_path, $bankAccountNumber, 
-        $accountHolderName, $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bankName
-      
-    );
+        $accountHolderName, $deliveryPerson, $promptpayNumber, $latitude, $longitude, $bankName);
 
-    if ($result != NULL && $result == true) {
-        $data["res_code"] = "00";
-        $data["res_text"] = "สมัครสำเร็จ";
+   
+    if ($result === true) {
+       
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'sibuyfoodnoti@gmail.com';  
+            $mail->Password = 'kxsi xipr gdkg ocrm';  
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+
+            $mail->setFrom('sibuyfoodnoti@gmail.com', 'sibuyfood');
+            $mail->addAddress($email);  
+
+            $mail->isHTML(true);
+            $mail->Subject = 'ยืนยันการสมัครร้านค้า';
+            $mail->Body    = 'กรุณาคลิกลิงค์นี้เพื่อยืนยันตัวตนของร้านค้าของคุณ: <a href="http://localhost/aipsibuyfood/api/v1/verifystore?token=' . $uuid . '">ยืนยันตัวตน</a>';
+            $mail->send();
+
+            $data["res_code"] = "00";
+            $data["res_text"] = "ร้านค้าถูกสมัครสำเร็จและส่งอีเมลยืนยันแล้ว";
+        } catch (Exception $e) {
+            $data["res_code"] = "01";
+            $data["res_text"] = "สมัครสำเร็จ แต่ไม่สามารถส่งอีเมลยืนยันได้: " . $mail->ErrorInfo;
+        }
     } else {
-        $data["res_code"] = "01";
-        $data["res_text"] = "สมัครไม่สำเร็จ";
+        if ($result == 'store_name_exists') {
+            $data["res_code"] = "01";
+            $data["res_text"] = "ชื่อร้านค้าซ้ำ";
+        } elseif ($result == 'email_exists') {
+            $data["res_code"] = "01";
+            $data["res_text"] = "อีเมลซ้ำ";
+        } else {
+            $data["res_code"] = "01";
+            $data["res_text"] = "สมัครร้านค้าไม่สำเร็จ";
+        }
     }
+
     return echoRespnse($response, 200, $data);
 });
+
+
 
 function generateastore() {
     return 'S' . sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
