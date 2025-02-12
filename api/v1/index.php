@@ -120,19 +120,27 @@ $app->get('/verifyuser', function($request, $response, $args) {
 
     $db = new DbHandler();
 
-   
-    $result = $db->verifyUser($userid);
+  
+    $status = $db->checkUserStatus($userid);
 
-    if ($result) {
-        $data["res_code"] = "00";
-        $data["res_text"] = "ยืนยันตัวตนสำเร็จ";
+    if ($status === 1) {
+        $data["res_code"] = "02";
+        $data["res_text"] = "บัญชีนี้ได้รับการยืนยันตัวตนแล้ว";
     } else {
-        $data["res_code"] = "01";
-        $data["res_text"] = "ไม่พบ IDนี้ในฐานข้อมูล หรือไม่สามารถยืนยันตัวตนได้";
+        $result = $db->verifyUser($userid);
+
+        if ($result) {
+            $data["res_code"] = "00";
+            $data["res_text"] = "ยืนยันตัวตนสำเร็จ";
+        } else {
+            $data["res_code"] = "01";
+            $data["res_text"] = "ไม่พบ ID นี้ในฐานข้อมูล หรือไม่สามารถยืนยันตัวตนได้";
+        }
     }
 
     return echoRespnse($response, 200, $data);
 });
+
 
 
 
@@ -357,22 +365,74 @@ function generateastore() {
 
 
 
+$app->get('/verifystore', function($request, $response, $args) {
+    $userstoreid = $request->getQueryParams()['token']; 
+
+    $db = new DbHandler();
+
+    // ตรวจสอบสถานะก่อน
+    $status = $db->checkStoreStatus($userstoreid);
+
+    if ($status === 1) {
+        $data["res_code"] = "02";
+        $data["res_text"] = "ร้านค้านี้ได้รับการยืนยันตัวตนแล้ว";
+    } else {
+        $result = $db->verifyStore($userstoreid);
+
+        if ($result) {
+            $data["res_code"] = "00";
+            $data["res_text"] = "ยืนยันการลงทะเบียนร้านค้าสำเร็จ";
+        } else {
+            $data["res_code"] = "01";
+            $data["res_text"] = "ไม่พบ ID นี้ในฐานข้อมูล หรือไม่สามารถยืนยันตัวตนได้";
+        }
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+$app->post('/login_strore', function($request, $response, $args) {
+    $email_store = $request->getParsedBody()['email'];
+    $password_store = $request->getParsedBody()['password'];
+
+    $db = new DbHandler();
+    $result = $db->login_store( $email_store,  $password_store);
+
+ 
+    if ($result['res_code'] == "00") {
+        
+        $data["res_code"] = "00";
+        $data["res_text"] = $result['res_text']; 
+        $data["user"] = $result["user"];
+    } else {
+       
+        $data["res_code"] = $result['res_code'];
+        $data["res_text"] = $result['res_text'];
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+
 
 
 
 // add_product
 
 $app->post('/add_product', function($request, $response, $args) use ($app) {
+
+    $storeId = $request->getParsedBody()['storeId'];
+    $productName = $request->getParsedBody()['productName'];
+    $price = $request->getParsedBody()['price'];
+    $expirationDays = $request->getParsedBody()['expirationDays'];
+    $productDescription = $request->getParsedBody()['productDescription'];
+    $uploadedFiles = $request->getUploadedFiles();
+    $image = $uploadedFiles['image'];
+    $categoryId = $request->getParsedBody()['categoryId'];
    
     
-    $storeId = $request->getParsedBody()['store_id'];  
-    $productName = $request->getParsedBody()['product_name'];  
-    $price = $request->getParsedBody()['price'];  
-    $expirationDays = $request->getParsedBody()['expiration_days'];  
-    $productDescription = $request->getParsedBody()['description']; 
-    $uploadedFiles = $request->getUploadedFiles();  
-    $image = $uploadedFiles['image'];  
-    $categoryId = $request->getParsedBody()['category_id'];  
+
     
 
 
@@ -387,12 +447,12 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
    
 
    
-    $uuid = generatestoreId();
+    $pbid = generatestoreId();
 
     $db = new DbHandler();
 
  
-    $result = $db->create_product( $uuid, $storeId, $productName, $price,$expirationDays, $productDescription, 
+    $result = $db->create_product( $pbid, $storeId, $productName, $price,$expirationDays, $productDescription, 
         $image_path, $categoryId
     );
    

@@ -60,6 +60,16 @@ public function verifyUser( $userid ) {
 
     
 }
+public function checkUserStatus($userid) {
+    $stmt = $this->conn->prepare("SELECT status FROM user_customer WHERE id = ?");
+    $stmt->bind_param("s", $userid);
+    $stmt->execute();
+    $stmt->bind_result($status);
+    $stmt->fetch();
+    $stmt->close();
+
+    return $status; 
+}
 
 
 
@@ -176,30 +186,124 @@ public function create_store($storeId, $storeName, $ownerName, $email, $hashedPa
 }
 
 
+public function checkStoreStatus($userstoreid) {
+    $stmt = $this->conn->prepare("SELECT store_status FROM user_store WHERE store_id = ?");
+    $stmt->bind_param("s", $userstoreid);
+    $stmt->execute();
+    $stmt->bind_result($store_status);
+    $stmt->fetch();
+    $stmt->close();
+
+    return $store_status; 
+}
+
+
+
+public function login_store($email_store, $password_store) {
+  
+    $stmt = $this->conn->prepare("SELECT `store_id`, `password`, `store_status` FROM `user_store` WHERE `email` = ?");
+    $stmt->bind_param("s", $email_store);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($row = $result->fetch_assoc()) {
+ 
+        if ($row['store_status'] == 0) {
+            return [
+                "res_code" => "01",
+                "res_text" => "ยังไม่ยืนยันตัวตน"
+            ];
+        }
+
+        if (password_verify($password_store, $row['password'])) {
+            return [
+                "res_code" => "00",
+                "res_text" => "เข้าสู่ระบบสำเร็จ",
+                "user" => [
+                    "id" => $row['store_id'],  
+                ]
+            ];
+        } else {
+            return [
+                "res_code" => "01",
+                "res_text" => "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+            ];
+        }
+    }
+
+    return [
+        "res_code" => "01",
+        "res_text" => "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+    ];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 //add product
 
 
-public function create_product( $uuid, $storeId, $productName, $price,$expirationDays, $productDescription, 
-$image_path, $categoryId) {
+public function create_product($pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId) {
    
-    $stmt = $this->conn->prepare(" INSERT INTO `products` ( `product_id`, `store_id`, `product_name`, `price`, `expiration_days`, `description`, `image_url`, `category_id`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+   
+    $stmt = $this->conn->prepare(" 
+        INSERT INTO `products` (
+            `product_id`, `store_id`, `product_name`, `price`, `expiration_date`, `description`, `image_url`, `category_id`
+        ) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
-    $stmt->bind_param( "sssdsssi", $uuid, $storeId, $productName, $price,$expirationDays, $productDescription, 
-    $image_path, $categoryId       
-);
+   
+    $stmt->bind_param("ssssssss", $pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId);
+    
+   
+    if ($stmt->execute()) {
+        return true; 
+    } else {
+        error_log("SQL Execute Failed: " . $stmt->error);
+        return false;
+    }
+}
 
-if ($stmt->execute()) {
-    return true; 
-} else {
-    error_log("SQL Execute Failed: " . $stmt->error);
-    return false;
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 public function viewProducts() {
@@ -263,6 +367,7 @@ if ($result->num_rows > 0) {
     return NULL;
 }
 }
+
 public function viewProducts_dessert() {
     $category_id = 2; 
     $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
@@ -295,6 +400,60 @@ if ($result->num_rows > 0) {
     return NULL;
 }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public function viewProducts_fresh_food() {
     $category_id = 3; 
     $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
