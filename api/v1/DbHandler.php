@@ -116,18 +116,37 @@ public function checkUserStatus($userid) {
 }
 
 
-//add address
-public function add_address($id, $address) {
-    
-    $stmt = $this->conn->prepare("UPDATE `users` SET `address` = ? WHERE `id` = ?");
-    $stmt->bind_param("ss", $address, $id); 
 
-    if ($stmt->execute()) {
-        return $address; 
+//add address
+public function get_datauser($id) {
+    
+    $stmt = $this->conn->prepare("SELECT username, address, profile_image FROM `user_customer` WHERE `id` = ?");
+    $stmt->bind_param("s", $id); 
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+   
+    if($result->num_rows > 0) {
+        $data = $result->fetch_assoc();
+        $stmt->close();
+        return $data; 
     } else {
+        $stmt->close();
         return false; 
     }
 }
+
+
+
+public function get_address($id) {
+    $stmt = $this->conn->prepare("SELECT `address` FROM `users` WHERE `id` = ?");
+    $stmt->bind_param("s", $id);
+    $stmt->execute();
+    $stmt->bind_result($address);
+    $stmt->fetch();
+    $stmt->close();
+}
+
 
 public function get_banner($image_path) {
    
@@ -140,6 +159,15 @@ public function get_banner($image_path) {
         return false;  
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 //store

@@ -218,6 +218,43 @@ $app->post('/add_address', function($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
+$app->post('/get_datauser', function($request, $response, $args) {
+
+    $id = $request->getParsedBody()['user_id'] ?? null;
+
+    if (!$id) {
+        return $response->withJson([
+            "res_code" => "02",
+            "res_text" => "ไม่พบ user_id"
+        ], 400); 
+    }
+
+    $db = new DbHandler();
+    $result = $db->get_datauser($id);
+
+    if ($result) {
+        $data = [
+            "res_code" => "00",
+            "res_text" => "ดึงข้อมูลสำเร็จ",
+            "data" => [
+                "profile_image" => $result['profile_image']  ,
+                "username" => $result['username'],  
+                "address" => $result['address']  
+            ]
+        ];
+    } else {
+        $data = [
+            "res_code" => "01",
+            "res_text" => "ดึงข้อมูลไม่สำเร็จ"
+        ];
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+
+
 // // user_customer//////////////////////
 
 // //addimage_banber
