@@ -60,6 +60,25 @@ public function verifyUser( $userid ) {
 
     
 }
+
+
+public function verifyStore( $userstoreid ) {
+    $stmt = $this->conn->prepare("UPDATE user_store SET store_status = 1 WHERE store_id = ?");
+    $stmt->bind_param("s", $userstoreid);
+
+
+    if ($stmt->execute()) {
+        return true; 
+    }
+    return false; 
+
+    
+}
+
+
+
+
+
 public function checkUserStatus($userid) {
     $stmt = $this->conn->prepare("SELECT status FROM user_customer WHERE id = ?");
     $stmt->bind_param("s", $userid);
@@ -117,7 +136,26 @@ public function checkUserStatus($userid) {
 
 
 
+
 //add address
+public function get_datauseassar($id) {
+    $stmt = $this->conn->prepare("SELECT store_name, owner_name, store_image, rating, store_address, description FROM `user_store` WHERE `store_id` = ?");
+    $stmt->bind_param("s", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $data = $result->fetch_assoc();
+        $stmt->close();
+        return $data;
+    } else {
+        $stmt->close();
+        return false;
+    }
+}
+
+
+
 public function get_datauser($id) {
     
     $stmt = $this->conn->prepare("SELECT username, address, profile_image FROM `user_customer` WHERE `id` = ?");
@@ -135,6 +173,26 @@ public function get_datauser($id) {
         return false; 
     }
 }
+
+
+public function add_address($id, $address) {
+    $stmt = $this->conn->prepare("UPDATE `user_customer` SET `address` = ? WHERE `id` = ?");
+    $stmt->bind_param("ss", $address, $id); 
+    $stmt->execute();
+
+    if ($stmt->affected_rows > 0) {
+        $stmt->close();
+        return true; 
+    } else {
+        $stmt->close();
+        return false; 
+    }
+}
+
+
+
+
+
 
 
 
@@ -290,18 +348,18 @@ public function login_store($email_store, $password_store) {
 //add product
 
 
-public function create_product($pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId) {
+public function create_product($pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId,$quantity) {
    
    
     $stmt = $this->conn->prepare(" 
         INSERT INTO `products` (
-            `product_id`, `store_id`, `product_name`, `price`, `expiration_date`, `description`, `image_url`, `category_id`
+            `product_id`, `store_id`, `product_name`, `price`, `expiration_date`, `description`, `image_url`, `category_id`, `stock_quantity`
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
    
-    $stmt->bind_param("ssssssss", $pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId);
+    $stmt->bind_param("ssssssssi", $pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId,$quantity);
     
    
     if ($stmt->execute()) {

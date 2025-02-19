@@ -255,6 +255,8 @@ $app->post('/get_datauser', function($request, $response, $args) {
 
 
 
+
+
 // // user_customer//////////////////////
 
 // //addimage_banber
@@ -322,7 +324,7 @@ $app->post('/register_store', function($request, $response, $args) use ($app) {
     $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
     $storeId = generateastore(); 
 
-    // อัปโหลดรูปภาพ
+ 
     $uploadedFiles = $request->getUploadedFiles();
     $image_path = null;
 
@@ -450,6 +452,39 @@ $app->post('/login_strore', function($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
+$app->post('/get_datastore', function ($request, $response, $args) {
+    $id = $request->getParsedBody()['store_id'] ?? null;
+
+   
+    
+    if (!$id) {
+        $data = [
+            "res_code" => "02",
+            "res_text" => "ไม่พบ store_id"
+        ];
+        return echoRespnse($response, 200, $data);
+    }
+    
+    
+
+    $db = new DbHandler();
+    $result = $db->get_datauseassar($id);
+
+    if ($result) {
+        $data = [
+            "res_code" => "00",
+            "res_text" => "ดึงข้อมูลสำเร็จ",
+            "data" => $result  
+        ];
+    } else {
+        $data = [
+            "res_code" => "01",
+            "res_text" => "ดึงข้อมูลไม่สำเร็จ"
+        ];
+    }
+
+    return echoRespnse($response, 200, $data);
+});
 
 
 
@@ -467,6 +502,7 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
     $uploadedFiles = $request->getUploadedFiles();
     $image = $uploadedFiles['image'];
     $categoryId = $request->getParsedBody()['categoryId'];
+    $quantity = $request->getParsedBody()['quantity'];
    
     
 
@@ -490,7 +526,7 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
 
  
     $result = $db->create_product( $pbid, $storeId, $productName, $price,$expirationDays, $productDescription, 
-        $image_path, $categoryId
+        $image_path, $categoryId ,$quantity
     );
    
     if ($result != NULL && $result == true) {
