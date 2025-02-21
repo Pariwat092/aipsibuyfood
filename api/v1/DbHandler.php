@@ -340,11 +340,6 @@ public function login_store($email_store, $password_store) {
 
 
 
-
-
-
-
-
 //add product
 
 
@@ -372,9 +367,59 @@ public function create_product($pbid, $storeId, $productName, $price, $expiratio
 
 
 
+public function getpularstore () {
+    $stmt = $this->conn->prepare("SELECT * FROM user_store ORDER BY rating DESC, RAND() LIMIT 5;
+");
+    $stmt->execute(); 
+    $result = $stmt->get_result(); 
+    $output = array(); 
 
+    if($result->num_rows > 0){
+        while($res = $result->fetch_assoc()) {
+            $response = array(
+                "store_id" => $res['store_id'],
+                "store_name" => $res['store_name'],
+                "latitude" => $res['latitude'],
+                "longitude" => $res['longitude'],
+                "rating" => $res['rating'],
+                "store_image" => $res['store_image'],
+            );
+            $output[] = $response; 
+        }
+        $stmt->close(); 
+        return $output; 
+    } else {
+        $stmt->close(); 
+        return NULL; 
+    }
+}
 
+public function getstoreall () {
+    $stmt = $this->conn->prepare("SELECT * FROM user_store;
+");
+    $stmt->execute(); 
+    $result = $stmt->get_result(); 
+    $output = array(); 
 
+    if($result->num_rows > 0){
+        while($res = $result->fetch_assoc()) {
+            $response = array(
+                "store_id" => $res['store_id'],
+                "store_name" => $res['store_name'],
+                "latitude" => $res['latitude'],
+                "longitude" => $res['longitude'],
+                "rating" => $res['rating'],
+                "store_image" => $res['store_image'],
+            );
+            $output[] = $response; 
+        }
+        $stmt->close(); 
+        return $output; 
+    } else {
+        $stmt->close(); 
+        return NULL; 
+    }
+}
 
 
 
@@ -393,24 +438,43 @@ public function create_product($pbid, $storeId, $productName, $price, $expiratio
 
 
 public function viewProducts() {
-    $stmt = $this->conn->prepare("SELECT * FROM `products`");
+    $stmt = $this->conn->prepare("
+        SELECT 
+            p.product_id, 
+            p.store_id, 
+            p.product_name, 
+            p.price, 
+            p.expiration_date, 
+            p.description, 
+            p.image_url, 
+            p.category_id,
+            us.delivery_person, 
+            us.store_address_link, 
+            us.latitude, 
+            us.longitude
+        FROM products p
+        JOIN user_store us ON p.store_id = us.store_id
+    ");
+    
     $stmt->execute(); 
     $result = $stmt->get_result(); 
     $output = array(); 
 
-    if($result->num_rows > 0){
-        while($res = $result->fetch_assoc()) {
+    if ($result->num_rows > 0) {
+        while ($res = $result->fetch_assoc()) {
             $response = array(
                 "product_id" => $res['product_id'],
                 "store_id" => $res['store_id'],
                 "product_name" => $res['product_name'],
                 "price" => $res['price'],
-                "expiration_days" => $res['expiration_days'],
+                "expiration_date" => $res['expiration_date'],
                 "description" => $res['description'],
                 "image_url" => $res['image_url'],
                 "category_id" => $res['category_id'],
-                "created_at" => $res['created_at'],
-                "updated_at" => $res['updated_at']
+                "delivery_person" => $res['delivery_person'],
+                "store_address_link" => $res['store_address_link'],
+                "latitude" => $res['latitude'],
+                "longitude" => $res['longitude']
             );
             $output[] = $response; 
         }
@@ -421,194 +485,237 @@ public function viewProducts() {
         return NULL; 
     }
 }
+
+
+
 public function viewProducts_drinks() {
-    $category_id = 1; 
-    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
+    $category_id = 1; // ตัวอย่าง category_id
+    $stmt = $this->conn->prepare("
+        SELECT 
+            p.product_id, 
+            p.store_id, 
+            p.product_name, 
+            p.price, 
+            p.expiration_date, 
+            p.description, 
+            p.image_url, 
+            p.category_id,
+            us.delivery_person, 
+            us.store_address_link, 
+            us.latitude, 
+            us.longitude
+        FROM products p
+        JOIN user_store us ON p.store_id = us.store_id
+        WHERE p.category_id = ?
+    ");
+    
     $stmt->bind_param("i", $category_id);
     $stmt->execute();
     
     $result = $stmt->get_result();
     $output = array();
 
-if ($result->num_rows > 0) {
-    while ($res = $result->fetch_assoc()) {
-        $response = array(
-            "product_id" => $res['product_id'],
-            "store_id" => $res['store_id'],
-            "product_name" => $res['product_name'],
-            "price" => $res['price'],
-            "expiration_days" => $res['expiration_days'],
-            "description" => $res['description'],
-            "image_url" => $res['image_url'],
-            "category_id" => $res['category_id'],
-            "created_at" => $res['created_at'],
-            "updated_at" => $res['updated_at']
-        );
-        $output[] = $response;
+    if ($result->num_rows > 0) {
+        while ($res = $result->fetch_assoc()) {
+            $response = array(
+                "product_id" => $res['product_id'],
+                "store_id" => $res['store_id'],
+                "product_name" => $res['product_name'],
+                "price" => $res['price'],
+                "expiration_date" => $res['expiration_date'],
+                "description" => $res['description'],
+                "image_url" => $res['image_url'],
+                "category_id" => $res['category_id'],
+                "delivery_person" => $res['delivery_person'],
+                "store_address_link" => $res['store_address_link'], 
+                "latitude" => $res['latitude'], 
+                "longitude" => $res['longitude']
+            );
+            $output[] = $response;
+        }
     }
+
     $stmt->close();
-    return $output;
-} else {
-    $stmt->close();
-    return NULL;
-}
+    return !empty($output) ? $output : NULL;
 }
 
 public function viewProducts_dessert() {
-    $category_id = 2; 
-    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
+    $category_id = 2; // ตัวอย่าง category_id
+    $stmt = $this->conn->prepare("
+        SELECT 
+            p.product_id, 
+            p.store_id, 
+            p.product_name, 
+            p.price, 
+            p.expiration_date, 
+            p.description, 
+            p.image_url, 
+            p.category_id, 
+            us.delivery_person,
+            us.store_address_link, 
+            us.latitude, 
+            us.longitude
+        FROM products p
+        JOIN user_store us ON p.store_id = us.store_id
+        WHERE p.category_id = ?
+    ");
+    
     $stmt->bind_param("i", $category_id);
     $stmt->execute();
     
     $result = $stmt->get_result();
     $output = array();
 
-if ($result->num_rows > 0) {
-    while ($res = $result->fetch_assoc()) {
-        $response = array(
-            "product_id" => $res['product_id'],
-            "store_id" => $res['store_id'],
-            "product_name" => $res['product_name'],
-            "price" => $res['price'],
-            "expiration_days" => $res['expiration_days'],
-            "description" => $res['description'],
-            "image_url" => $res['image_url'],
-            "category_id" => $res['category_id'],
-            "created_at" => $res['created_at'],
-            "updated_at" => $res['updated_at']
-        );
-        $output[] = $response;
+    if ($result->num_rows > 0) {
+        while ($res = $result->fetch_assoc()) {
+            $response = array(
+                "product_id" => $res['product_id'],
+                "store_id" => $res['store_id'],
+                "product_name" => $res['product_name'],
+                "price" => $res['price'],
+                "expiration_date" => $res['expiration_date'],
+                "description" => $res['description'],
+                "image_url" => $res['image_url'],
+                "category_id" => $res['category_id'],
+                "delivery_person" => $res['delivery_person'],
+                "store_address_link" => $res['store_address_link'], 
+                "latitude" => $res['latitude'], 
+                "longitude" => $res['longitude']
+            );
+            $output[] = $response;
+        }
     }
+
     $stmt->close();
-    return $output;
-} else {
-    $stmt->close();
-    return NULL;
+    return !empty($output) ? $output : NULL;
 }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 public function viewProducts_fresh_food() {
-    $category_id = 3; 
-    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
+    $category_id = 3; // ตัวอย่าง category_id
+    $stmt = $this->conn->prepare("
+        SELECT 
+            p.product_id, 
+            p.store_id, 
+            p.product_name, 
+            p.price, 
+            p.expiration_date, 
+            p.description, 
+            p.image_url, 
+            p.category_id, 
+            us.delivery_person,
+            us.store_address_link, 
+            us.latitude, 
+            us.longitude
+        FROM products p
+        JOIN user_store us ON p.store_id = us.store_id
+        WHERE p.category_id = ?
+    ");
+    
     $stmt->bind_param("i", $category_id);
     $stmt->execute();
     
     $result = $stmt->get_result();
     $output = array();
 
-if ($result->num_rows > 0) {
-    while ($res = $result->fetch_assoc()) {
-        $response = array(
-            "product_id" => $res['product_id'],
-            "store_id" => $res['store_id'],
-            "product_name" => $res['product_name'],
-            "price" => $res['price'],
-            "expiration_days" => $res['expiration_days'],
-            "description" => $res['description'],
-            "image_url" => $res['image_url'],
-            "category_id" => $res['category_id'],
-            "created_at" => $res['created_at'],
-            "updated_at" => $res['updated_at']
-        );
-        $output[] = $response;
+    if ($result->num_rows > 0) {
+        while ($res = $result->fetch_assoc()) {
+            $response = array(
+                "product_id" => $res['product_id'],
+                "store_id" => $res['store_id'],
+                "product_name" => $res['product_name'],
+                "price" => $res['price'],
+                "expiration_date" => $res['expiration_date'],
+                "description" => $res['description'],
+                "image_url" => $res['image_url'],
+                "category_id" => $res['category_id'],
+                "delivery_person" => $res['delivery_person'],
+                "store_address_link" => $res['store_address_link'], 
+                "latitude" => $res['latitude'], 
+                "longitude" => $res['longitude']
+            );
+            $output[] = $response;
+        }
     }
+
     $stmt->close();
-    return $output;
-} else {
-    $stmt->close();
-    return NULL;
-}
+    return !empty($output) ? $output : NULL;
 }
 public function viewProducts_other() {
-    $category_id = 4; 
-    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `category_id` = ?");
+    $category_id = 4; // ตัวอย่าง category_id
+    $stmt = $this->conn->prepare("
+        SELECT 
+            p.product_id, 
+            p.store_id, 
+            p.product_name, 
+            p.price, 
+            p.expiration_date, 
+            p.description, 
+            p.image_url, 
+            p.category_id, 
+            us.delivery_person,
+            us.store_address_link, 
+            us.latitude, 
+            us.longitude
+        FROM products p
+        JOIN user_store us ON p.store_id = us.store_id
+        WHERE p.category_id = ?
+    ");
+    
     $stmt->bind_param("i", $category_id);
     $stmt->execute();
     
     $result = $stmt->get_result();
     $output = array();
 
-if ($result->num_rows > 0) {
-    while ($res = $result->fetch_assoc()) {
-        $response = array(
-            "product_id" => $res['product_id'],
-            "store_id" => $res['store_id'],
-            "product_name" => $res['product_name'],
-            "price" => $res['price'],
-            "expiration_days" => $res['expiration_days'],
-            "description" => $res['description'],
-            "image_url" => $res['image_url'],
-            "category_id" => $res['category_id'],
-            "created_at" => $res['created_at'],
-            "updated_at" => $res['updated_at']
-        );
-        $output[] = $response;
+    if ($result->num_rows > 0) {
+        while ($res = $result->fetch_assoc()) {
+            $response = array(
+                "product_id" => $res['product_id'],
+                "store_id" => $res['store_id'],
+                "product_name" => $res['product_name'],
+                "price" => $res['price'],
+                "expiration_date" => $res['expiration_date'],
+                "description" => $res['description'],
+                "image_url" => $res['image_url'],
+                "category_id" => $res['category_id'],
+                "delivery_person" => $res['delivery_person'],
+                "store_address_link" => $res['store_address_link'], 
+                "latitude" => $res['latitude'], 
+                "longitude" => $res['longitude']
+            );
+            $output[] = $response;
+        }
     }
+
     $stmt->close();
-    return $output;
-} else {
-    $stmt->close();
-    return NULL;
+    return !empty($output) ? $output : NULL;
 }
-}
+
+
+
+
+
 public function searchProducts($searchTerm) {
-   
-    $stmt = $this->conn->prepare("SELECT * FROM `products` WHERE `product_name` LIKE ?");
+    $stmt = $this->conn->prepare("
+        SELECT 
+            p.product_id, 
+            p.store_id, 
+            p.product_name, 
+            p.price, 
+            p.expiration_date, 
+            p.description, 
+            p.image_url, 
+            p.category_id, 
+            us.delivery_person,
+            us.store_address_link, 
+            us.latitude, 
+            us.longitude
+        FROM products p
+        JOIN user_store us ON p.store_id = us.store_id
+        WHERE p.product_name LIKE ?
+    ");
     
-   
     $searchTerm = "%" . $searchTerm . "%";
     $stmt->bind_param("s", $searchTerm);
     $stmt->execute();
@@ -623,12 +730,14 @@ public function searchProducts($searchTerm) {
                 "store_id" => $res['store_id'],
                 "product_name" => $res['product_name'],
                 "price" => $res['price'],
-                "expiration_days" => $res['expiration_days'],
+                "expiration_date" => $res['expiration_date'],
                 "description" => $res['description'],
                 "image_url" => $res['image_url'],
                 "category_id" => $res['category_id'],
-                "created_at" => $res['created_at'],
-                "updated_at" => $res['updated_at']
+                "delivery_person" => $res['delivery_person'],
+                "store_address_link" => $res['store_address_link'], 
+                "latitude" => $res['latitude'], 
+                "longitude" => $res['longitude']
             );
             $output[] = $response;
         }

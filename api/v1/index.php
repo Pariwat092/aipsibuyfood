@@ -559,6 +559,49 @@ function generatestoreId($prefix = 'p', $length = 12) {
 
 
 // function_app
+
+$app->post('/popular_stores', function($request, $response, $args) use ($app) {
+
+    $db = new DbHandler(); 
+    
+    $result = $db->getpularstore(); 
+
+    $data =array();
+
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["storespopular"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+$app->post('/getstoreall', function($request, $response, $args) use ($app) {
+
+    $db = new DbHandler(); 
+    
+    $result = $db->getstoreall(); 
+
+    $data =array();
+
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["storespopular"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+
 $app->post('/viewProductsall', function($request, $response, $args) use ($app) {
 
     $db = new DbHandler(); 
