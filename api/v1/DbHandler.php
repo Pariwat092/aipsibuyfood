@@ -410,6 +410,9 @@ public function getstoreall () {
                 "longitude" => $res['longitude'],
                 "rating" => $res['rating'],
                 "store_image" => $res['store_image'],
+                "description" => $res['description'],
+                "store_address" => $res['store_address'],
+
             );
             $output[] = $response; 
         }
