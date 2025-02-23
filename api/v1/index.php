@@ -503,6 +503,7 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
     $image = $uploadedFiles['image'];
     $categoryId = $request->getParsedBody()['categoryId'];
     $quantity = $request->getParsedBody()['quantity'];
+    $isyollow = $request->getParsedBody()['isyollow'];
    
     
 
@@ -526,7 +527,7 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
 
  
     $result = $db->create_product( $pbid, $storeId, $productName, $price,$expirationDays, $productDescription, 
-        $image_path, $categoryId ,$quantity
+        $image_path, $categoryId ,$quantity ,$isyollow
     );
    
     if ($result != NULL && $result == true) {

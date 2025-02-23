@@ -343,20 +343,18 @@ public function login_store($email_store, $password_store) {
 //add product
 
 
-public function create_product($pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId,$quantity) {
-   
-   
+public function create_product($pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId, $quantity, $isyellow) {
+    
     $stmt = $this->conn->prepare(" 
         INSERT INTO `products` (
-            `product_id`, `store_id`, `product_name`, `price`, `expiration_date`, `description`, `image_url`, `category_id`, `stock_quantity`
+            `product_id`, `store_id`, `product_name`, `price`, `expiration_date`, `description`, `image_url`, `category_id`, `stock_quantity`, `is_yellow_sign`
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
    
-    $stmt->bind_param("ssssssssi", $pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId,$quantity);
+    $stmt->bind_param("ssssssssii", $pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId, $quantity, $isyellow);
     
-   
     if ($stmt->execute()) {
         return true; 
     } else {
@@ -364,6 +362,7 @@ public function create_product($pbid, $storeId, $productName, $price, $expiratio
         return false;
     }
 }
+
 
 
 
@@ -451,6 +450,8 @@ public function viewProducts() {
             p.description, 
             p.image_url, 
             p.category_id,
+            p.stock_quantity,
+            p.is_yellow_sign,
             us.delivery_person, 
             us.store_address_link, 
             us.latitude, 
@@ -474,6 +475,8 @@ public function viewProducts() {
                 "description" => $res['description'],
                 "image_url" => $res['image_url'],
                 "category_id" => $res['category_id'],
+                "stock_quantity" => $res['stock_quantity'],
+                "is_yellow_sign" => $res['is_yellow_sign'],
                 "delivery_person" => $res['delivery_person'],
                 "store_address_link" => $res['store_address_link'],
                 "latitude" => $res['latitude'],
@@ -503,6 +506,8 @@ public function viewProducts_drinks() {
             p.description, 
             p.image_url, 
             p.category_id,
+            p.stock_quantity,
+            p.is_yellow_sign,
             us.delivery_person, 
             us.store_address_link, 
             us.latitude, 
@@ -529,6 +534,8 @@ public function viewProducts_drinks() {
                 "description" => $res['description'],
                 "image_url" => $res['image_url'],
                 "category_id" => $res['category_id'],
+                "stock_quantity" => $res['stock_quantity'],
+                "is_yellow_sign" => $res['is_yellow_sign'],
                 "delivery_person" => $res['delivery_person'],
                 "store_address_link" => $res['store_address_link'], 
                 "latitude" => $res['latitude'], 
@@ -554,6 +561,8 @@ public function viewProducts_dessert() {
             p.description, 
             p.image_url, 
             p.category_id, 
+            p.stock_quantity,
+            p.is_yellow_sign,
             us.delivery_person,
             us.store_address_link, 
             us.latitude, 
@@ -580,6 +589,8 @@ public function viewProducts_dessert() {
                 "description" => $res['description'],
                 "image_url" => $res['image_url'],
                 "category_id" => $res['category_id'],
+                "stock_quantity" => $res['stock_quantity'],
+                "is_yellow_sign" => $res['is_yellow_sign'],
                 "delivery_person" => $res['delivery_person'],
                 "store_address_link" => $res['store_address_link'], 
                 "latitude" => $res['latitude'], 
@@ -606,6 +617,8 @@ public function viewProducts_fresh_food() {
             p.description, 
             p.image_url, 
             p.category_id, 
+            p.stock_quantity,
+            p.is_yellow_sign,
             us.delivery_person,
             us.store_address_link, 
             us.latitude, 
@@ -632,6 +645,8 @@ public function viewProducts_fresh_food() {
                 "description" => $res['description'],
                 "image_url" => $res['image_url'],
                 "category_id" => $res['category_id'],
+                "stock_quantity" => $res['stock_quantity'],
+                "is_yellow_sign" => $res['is_yellow_sign'],
                 "delivery_person" => $res['delivery_person'],
                 "store_address_link" => $res['store_address_link'], 
                 "latitude" => $res['latitude'], 
@@ -656,6 +671,8 @@ public function viewProducts_other() {
             p.description, 
             p.image_url, 
             p.category_id, 
+            p.stock_quantity,
+            p.is_yellow_sign,
             us.delivery_person,
             us.store_address_link, 
             us.latitude, 
@@ -682,6 +699,8 @@ public function viewProducts_other() {
                 "description" => $res['description'],
                 "image_url" => $res['image_url'],
                 "category_id" => $res['category_id'],
+                "stock_quantity" => $res['stock_quantity'],
+                "is_yellow_sign" => $res['is_yellow_sign'],
                 "delivery_person" => $res['delivery_person'],
                 "store_address_link" => $res['store_address_link'], 
                 "latitude" => $res['latitude'], 
@@ -709,7 +728,9 @@ public function searchProducts($searchTerm) {
             p.expiration_date, 
             p.description, 
             p.image_url, 
-            p.category_id, 
+            p.category_id,
+            p.stock_quantity,
+            p.is_yellow_sign, 
             us.delivery_person,
             us.store_address_link, 
             us.latitude, 
@@ -737,6 +758,8 @@ public function searchProducts($searchTerm) {
                 "description" => $res['description'],
                 "image_url" => $res['image_url'],
                 "category_id" => $res['category_id'],
+                "stock_quantity" => $res['stock_quantity'],
+                "is_yellow_sign" => $res['is_yellow_sign'],
                 "delivery_person" => $res['delivery_person'],
                 "store_address_link" => $res['store_address_link'], 
                 "latitude" => $res['latitude'], 
