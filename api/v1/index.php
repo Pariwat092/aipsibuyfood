@@ -252,6 +252,71 @@ $app->post('/get_datauser', function($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
+$app->post('/add_cart', function($request, $response, $args) {
+
+    $body = $request->getParsedBody();
+
+    if (!isset($body['user_id'], $body['store_id'], $body['product_id'])) {
+        $data["res_code"] = "02"; 
+        $data["res_text"] = "ข้อมูลไม่ครบถ้วน";
+        return echoRespnse($response, 200, $data);
+    }
+
+    $user_id = $body['user_id'];
+    $store_id = $body['store_id'];
+    $product_id = $body['product_id'];
+
+
+    $quantity = isset($body['quantity']) ? $body['quantity'] : 1;
+
+    if (!function_exists('generateidcart') || !function_exists('generateidcart_item')) {
+        $data["res_code"] = "03"; 
+        $data["res_text"] = "ฟังก์ชัน UUID ไม่ถูกต้อง";
+        return echoRespnse($response, 200, $data);
+    }
+
+    $cart_id = generateidcart();
+    $cart_item_id = generateidcart_item();
+
+    $db = new DbHandler();
+    $result = $db->add_cart($user_id, $store_id, $product_id,  $quantity, $cart_id, $cart_item_id);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "เพิ่มสินค้าลงตะกร้าสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "เพิ่มสินค้าลงตะกร้าไม่สำเร็จ";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+
+function generateidcart() {
+    return 'C'. sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), 
+        mt_rand(0, 0xffff), 
+        mt_rand(0, 0x0fff) | 0x4000, 
+        mt_rand(0, 0x3fff) | 0x8000, 
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
+}
+
+
+function  generateidcart_item() {
+    return 'Ci'. sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), 
+        mt_rand(0, 0xffff), 
+        mt_rand(0, 0x0fff) | 0x4000, 
+        mt_rand(0, 0x3fff) | 0x8000, 
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    ); 
+}
+
+
+
 
 
 
@@ -731,6 +796,30 @@ $app->post('/searchProducts', function($request, $response, $args) use ($app) {
     return echoRespnse($response, 200, $data);
 });
 
+$app->post('/get_data_products_isstore', function($request, $response, $args) use ($app) {
+   
+    $data = $request->getParsedBody();
+
+    
+    $store_id = $data['store_id'] ?? '';
+
+    
+    $db = new DbHandler();
+    $result = $db->get_data_products_isstore($store_id);
+
+    $data = array();
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["isstoreproducts"] = $result;
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
 // function_app
 
 
@@ -758,3 +847,6 @@ $app->run();
 
 
 ?>
+
+
+

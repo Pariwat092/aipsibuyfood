@@ -364,6 +364,53 @@ public function create_product($pbid, $storeId, $productName, $price, $expiratio
 }
 
 
+public function add_cart($user_id, $store_id, $product_id,  $quantity, $cart_id, $cart_item_id) {
+  
+    $quantity = isset($quantity) && $quantity !== null ? $quantity : 1;
+
+ 
+    $stmt = $this->conn->prepare(" 
+        INSERT INTO `cart` (`cart_id`, `user_id`, `store_id`) 
+        VALUES (?, ?, ?)
+    ");
+    
+    if (!$stmt) {
+        error_log("SQL Prepare Failed (cart): " . $this->conn->error);
+        return false;
+    }
+
+    $stmt->bind_param("sss", $cart_id, $user_id, $store_id);
+    
+    if (!$stmt->execute()) {
+        error_log("SQL Execute Failed (cart): " . $stmt->error);
+        return false;
+    }
+    
+    $stmt->close(); 
+
+    // เพิ่มข้อมูลในตาราง cart_items
+    $stmt = $this->conn->prepare(" 
+    INSERT INTO `cart_items` (`cart_item_id`, `cart_id`, `product_id`, `quantity`) 
+    VALUES (?, ?, ?, ?)
+    ");
+
+    // bind ค่าให้กับ parameter
+    $stmt->bind_param("sssi", $cart_item_id, $cart_id, $product_id, $quantity);
+
+    // ทำการ execute คำสั่ง SQL
+    if (!$stmt->execute()) {
+        error_log("SQL Execute Failed (cart_items): " . $stmt->error);
+        return false;
+    }
+
+    $stmt->close();
+
+    return true;
+}
+
+
+
+
 
 
 public function getpularstore () {
@@ -774,6 +821,64 @@ public function searchProducts($searchTerm) {
         return NULL;
     }
 }
+
+
+public function get_data_products_isstore($store_id) {
+    $stmt = $this->conn->prepare("
+        SELECT 
+            p.product_id, 
+            p.store_id, 
+            p.product_name, 
+            p.price, 
+            p.expiration_date, 
+            p.description, 
+            p.image_url, 
+            p.category_id,
+            p.stock_quantity,
+            p.is_yellow_sign, 
+            us.delivery_person,
+            us.store_address_link, 
+            us.latitude, 
+            us.longitude
+        FROM products p
+        JOIN user_store us ON p.store_id = us.store_id
+        WHERE p.store_id = ?
+    ");
+    
+    $stmt->bind_param("s", $store_id);
+    $stmt->execute();
+    
+    $result = $stmt->get_result();
+    $output = array();
+
+    if ($result->num_rows > 0) {
+        while ($res = $result->fetch_assoc()) {
+            $response = array(
+                "product_id" => $res['product_id'],
+                "store_id" => $res['store_id'],
+                "product_name" => $res['product_name'],
+                "price" => $res['price'],
+                "expiration_date" => $res['expiration_date'],
+                "description" => $res['description'],
+                "image_url" => $res['image_url'],
+                "category_id" => $res['category_id'],
+                "stock_quantity" => $res['stock_quantity'],
+                "is_yellow_sign" => $res['is_yellow_sign'],
+                "delivery_person" => $res['delivery_person'],
+                "store_address_link" => $res['store_address_link'], 
+                "latitude" => $res['latitude'], 
+                "longitude" => $res['longitude']
+            );
+            $output[] = $response;
+        }
+        $stmt->close();
+        return $output;
+    } else {
+        $stmt->close();
+        return NULL;
+    }
+}
+
 
 
 
