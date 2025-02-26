@@ -688,6 +688,24 @@ $app->post('/viewProductsall', function($request, $response, $args) use ($app) {
     return echoRespnse($response, 200, $data);
 });
 
+$app->post('/viewProductsToday', function($request, $response, $args) use ($app) {
+
+    $db = new DbHandler(); 
+    
+    $result = $db->viewProductsToday(); 
+    $data = array();
+
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสินค้าวันนี้สำเร็จ";
+        $data["products"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้าวันนี้";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
 
 
 $app->post('/viewProductsdrinks', function($request, $response, $args) use ($app) {
