@@ -139,7 +139,7 @@ public function checkUserStatus($userid) {
 
 //add address
 public function get_datauseassar($id) {
-    $stmt = $this->conn->prepare("SELECT store_name, owner_name, store_image, rating, store_address, description FROM `user_store` WHERE `store_id` = ?");
+    $stmt = $this->conn->prepare("SELECT store_name, store_image, rating, store_address, description FROM `user_store` WHERE `store_id` = ?");
     $stmt->bind_param("s", $id);
     $stmt->execute();
     $result = $stmt->get_result();
