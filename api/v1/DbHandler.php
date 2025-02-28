@@ -158,7 +158,7 @@ public function get_datauseassar($id) {
 
 public function get_datauser($id) {
     
-    $stmt = $this->conn->prepare("SELECT username, address, profile_image FROM `user_customer` WHERE `id` = ?");
+    $stmt = $this->conn->prepare("SELECT username, address, profile_image , email , phone FROM `user_customer` WHERE `id` = ?");
     $stmt->bind_param("s", $id); 
     $stmt->execute();
     $result = $stmt->get_result();
@@ -813,7 +813,28 @@ public function viewProducts_other() {
     return !empty($output) ? $output : NULL;
 }
 
+public function suggestProducts($searchTerm) {
+    $stmt = $this->conn->prepare("
+        SELECT product_name 
+        FROM products 
+        WHERE product_name LIKE ? 
+        LIMIT 5
+    ");
+    
+    $searchTerm = "%" . $searchTerm . "%";
+    $stmt->bind_param("s", $searchTerm);
+    $stmt->execute();
+    
+    $result = $stmt->get_result();
+    $suggestions = [];
 
+    while ($row = $result->fetch_assoc()) {
+        $suggestions[] = $row['product_name'];
+    }
+
+    $stmt->close();
+    return $suggestions;
+}
 
 
 

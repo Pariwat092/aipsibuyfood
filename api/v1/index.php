@@ -239,7 +239,9 @@ $app->post('/get_datauser', function($request, $response, $args) {
             "data" => [
                 "profile_image" => $result['profile_image']  ,
                 "username" => $result['username'],  
-                "address" => $result['address']  
+                "address" => $result['address'],
+                "email" => $result['email'] ,
+                "phone" => $result['phone'] 
             ]
         ];
     } else {
@@ -813,6 +815,21 @@ $app->post('/searchProducts', function($request, $response, $args) use ($app) {
 
     return echoRespnse($response, 200, $data);
 });
+
+$app->post('/suggestProducts', function($request, $response, $args) use ($app) {
+    $queryParams = $request->getParsedBody();
+    $searchTerm = $queryParams['searchTerm'] ?? '';
+
+    if (!$searchTerm) {
+        return echoRespnse($response, 200, []);
+    }
+
+    $db = new DbHandler();
+    $result = $db->suggestProducts($searchTerm);
+
+    return echoRespnse($response, 200, $result);
+});
+
 
 $app->post('/get_data_products_isstore', function($request, $response, $args) use ($app) {
    
