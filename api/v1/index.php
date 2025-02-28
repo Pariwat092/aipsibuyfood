@@ -141,6 +141,75 @@ $app->get('/verifyuser', function($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
+$app->post('/editname', function($request, $response, $args) {
+    $params = $request->getParsedBody(); 
+    $newmname = $params['edit_name'] ?? null; 
+    $userid = $params['user_id'] ?? null; 
+
+    if (!$newmname || !$userid) {
+        return echoRespnse($response, 400, [
+            "res_code" => "03",
+            "res_text" => "กรุณาระบุ user_id และ edit_name"
+        ]);
+    }
+
+    $db = new DbHandler();
+    
+    $result = $db->editname($userid, $newmname);
+
+    if ($result === "duplicate") {
+        return echoRespnse($response, 409, [
+            "res_code" => "02",
+            "res_text" => "ชื่อผู้ใช้นี้ถูกใช้แล้ว กรุณาเลือกชื่ออื่น"
+        ]);
+    } elseif ($result === "success") {
+        return echoRespnse($response, 200, [
+            "res_code" => "00",
+            "res_text" => "เปลี่ยนชื่อสำเร็จ"
+        ]);
+    } else {
+        return echoRespnse($response, 500, [
+            "res_code" => "01",
+            "res_text" => "เกิดข้อผิดพลาด ไม่สามารถเปลี่ยนชื่อได้"
+        ]);
+    }
+});
+
+
+$app->post('/ediphone', function($request, $response, $args) {
+    $params = $request->getParsedBody(); 
+    $newPhone = $params['edit_phone'] ?? null; 
+    $userid = $params['user_id'] ?? null; 
+
+    if (!$newPhone || !$userid) {
+        return echoRespnse($response, 400, [
+            "res_code" => "03",
+            "res_text" => "กรุณาระบุ user_id และ edit_phone"
+        ]);
+    }
+
+    $db = new DbHandler();
+    
+    $result = $db->editPhone($userid, $newPhone);
+
+    if ($result === "duplicate") {
+        return echoRespnse($response, 409, [
+            "res_code" => "02",
+            "res_text" => "หมายเลขโทรศัพท์นี้ถูกใช้แล้ว กรุณาเลือกหมายเลขอื่น"
+        ]);
+    } elseif ($result === "success") {
+        return echoRespnse($response, 200, [
+            "res_code" => "00",
+            "res_text" => "เปลี่ยนหมายเลขโทรศัพท์สำเร็จ"
+        ]);
+    } else {
+        return echoRespnse($response, 500, [
+            "res_code" => "01",
+            "res_text" => "เกิดข้อผิดพลาด ไม่สามารถเปลี่ยนหมายเลขโทรศัพท์ได้"
+        ]);
+    }
+});
+
 
 
 

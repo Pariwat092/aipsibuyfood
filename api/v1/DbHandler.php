@@ -60,6 +60,28 @@ public function verifyUser( $userid ) {
 
     
 }
+ 
+public function editname($userid, $newmname) {
+   
+    $stmt_check = $this->conn->prepare("SELECT id FROM user_customer WHERE username = ?");
+    $stmt_check->bind_param("s", $newmname);
+    $stmt_check->execute();
+    $stmt_check->store_result();
+
+    if ($stmt_check->num_rows > 0) {
+        return "duplicate"; 
+    }
+
+   
+    $stmt = $this->conn->prepare("UPDATE user_customer SET username = ? WHERE id = ?");
+    $stmt->bind_param("ss", $newmname, $userid);
+
+    if ($stmt->execute()) {
+        return "success"; 
+    }
+    return "error"; 
+}
+
 
 
 public function verifyStore( $userstoreid ) {
@@ -74,6 +96,29 @@ public function verifyStore( $userstoreid ) {
 
     
 }
+
+public function editPhone($userid, $newPhone) {
+ 
+    $stmt_check = $this->conn->prepare("SELECT id FROM user_customer WHERE phone = ?");
+    $stmt_check->bind_param("s", $newPhone); 
+    $stmt_check->execute();
+    $stmt_check->store_result();
+
+    if ($stmt_check->num_rows > 0) {
+        return "duplicate"; 
+    }
+
+    
+    $stmt = $this->conn->prepare("UPDATE user_customer SET phone = ? WHERE id = ?");
+    $stmt->bind_param("ss", $newPhone, $userid); 
+
+    if ($stmt->execute()) {
+        return "success"; 
+    }
+    return "error"; 
+}
+
+
 
 
 
