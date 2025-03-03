@@ -3,12 +3,16 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+// ini_set('memory_limit', '512M'); // เพิ่มหน่วยความจำเป็น 512MB
+// ini_set('max_execution_time', '300'); // เพิ่มเวลารันสูงสุดเป็น 300 วินาที (5 นาที)
+// ini_set('max_input_vars', '10000'); //เพิ่มจำนวนตัวแปรอินพุตที่รับได้
 
 header('Access-Control-Allow-Origin: *');
 header("Access-Control-Allow-Credentials: true");
 header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
 header('Access-Control-Max-Age: 1000');
 header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
+
 require_once './DbHandler.php';
 require_once '../include/Config.php';
 // require '../vendor/autoload.php';
@@ -28,7 +32,15 @@ $app->setBasePath('/aipsibuyfood/api/v1');
 
 
 
-
+// $app->get('/check-settings', function (Request $request, $response, $args) {
+//     $settings = [
+//         'memory_limit' => ini_get('memory_limit'),
+//         'max_execution_time' => ini_get('max_execution_time'),
+//         'max_input_vars' => ini_get('max_input_vars')
+//     ];
+//     $response->getBody()->write(json_encode($settings));
+//     return $response->withHeader('Content-Type', 'application/json');
+// });
 
 
 // ตรวจสอบ api
@@ -364,26 +376,41 @@ $app->post('/add_cart', function($request, $response, $args) {
 });
 
 
+$app->post('/getcartuser', function($request, $response, $args) {
+
+    $user_id = $request->getParsedBody()['user_id'];
+
+    $db = new DbHandler();
+    $result = $db->getUserCartWithProducts($user_id);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "ดึงข้อมูลสินค้าในตะกร้าสำเร็จ";
+        $data["carts"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ดึงข้อมูลสินค้าในตะกร้าไม่สำเร็จ";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
 
 function generateidcart() {
-    return 'C'. sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), 
+    return 'C' . sprintf('%04x-%04x-%04x',
         mt_rand(0, 0xffff), 
-        mt_rand(0, 0x0fff) | 0x4000, 
-        mt_rand(0, 0x3fff) | 0x8000, 
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        mt_rand(0, 0xffff), 
+        mt_rand(0, 0xffff)
     );
 }
 
 
 function  generateidcart_item() {
-    return 'Ci'. sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), 
-        mt_rand(0, 0xffff), 
-        mt_rand(0, 0x0fff) | 0x4000, 
-        mt_rand(0, 0x3fff) | 0x8000, 
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-    ); 
+    return 'CI' . sprintf('%04x-%04x-%04x',
+    mt_rand(0, 0xffff), 
+    mt_rand(0, 0xffff), 
+    mt_rand(0, 0xffff)
+);
 }
 
 
@@ -639,7 +666,7 @@ $app->post('/add_product', function($request, $response, $args) use ($app) {
     $image = $uploadedFiles['image'];
     $categoryId = $request->getParsedBody()['categoryId'];
     $quantity = $request->getParsedBody()['quantity'];
-    $isyollow = $request->getParsedBody()['isyollow'];
+    $isyollow = $request->getParsedBody()['isyellow'];
    
     
 

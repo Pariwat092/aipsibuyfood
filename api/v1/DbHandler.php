@@ -409,39 +409,68 @@ public function create_product($pbid, $storeId, $productName, $price, $expiratio
 }
 
 
-public function add_cart($user_id, $store_id, $product_id,  $quantity, $cart_id, $cart_item_id) {
-  
+public function add_cart($user_id, $store_id, $product_id, $quantity, $cart_id, $cart_item_id) {
     $quantity = isset($quantity) && $quantity !== null ? $quantity : 1;
 
- 
-    $stmt = $this->conn->prepare(" 
-        INSERT INTO `cart` (`cart_id`, `user_id`, `store_id`) 
-        VALUES (?, ?, ?)
-    ");
-    
-    if (!$stmt) {
-        error_log("SQL Prepare Failed (cart): " . $this->conn->error);
-        return false;
-    }
-
-    $stmt->bind_param("sss", $cart_id, $user_id, $store_id);
-    
-    if (!$stmt->execute()) {
-        error_log("SQL Execute Failed (cart): " . $stmt->error);
-        return false;
-    }
-    
-    $stmt->close(); 
-
    
-    $stmt = $this->conn->prepare(" 
-    INSERT INTO `cart_items` (`cart_item_id`, `cart_id`, `product_id`, `quantity`) 
-    VALUES (?, ?, ?, ?)
+    $stmt = $this->conn->prepare("SELECT cart_id FROM cart WHERE user_id = ? AND store_id = ? LIMIT 1");
+    $stmt->bind_param("ss", $user_id, $store_id);
+    $stmt->execute();
+    $stmt->bind_result($existing_cart_id);
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+       
+        $stmt->fetch();
+        $cart_id = $existing_cart_id;
+    } else {
+       
+        $stmt = $this->conn->prepare(" 
+            INSERT INTO `cart` (`cart_id`, `user_id`, `store_id`) 
+            VALUES (?, ?, ?)
+        ");
+        if (!$stmt) {
+            error_log("SQL Prepare Failed (cart): " . $this->conn->error);
+            return false;
+        }
+
+        $stmt->bind_param("sss", $cart_id, $user_id, $store_id);
+
+        if (!$stmt->execute()) {
+            error_log("SQL Execute Failed (cart): " . $stmt->error);
+            return false;
+        }
+    }
+
+    $stmt->close();
+
+    
+    $stmt = $this->conn->prepare("
+        SELECT quantity FROM cart_items WHERE cart_id = ? AND product_id = ?
     ");
+    $stmt->bind_param("ss", $cart_id, $product_id);
+    $stmt->execute();
+    $stmt->bind_result($currentQuantity);
+    $stmt->store_result();
 
-    $stmt->bind_param("sssi", $cart_item_id, $cart_id, $product_id, $quantity);
+    if ($stmt->num_rows > 0) {
+       
+        $stmt->fetch();
+        $newQuantity = $currentQuantity + $quantity;
 
-  
+        $stmt = $this->conn->prepare("
+            UPDATE cart_items SET quantity = ? WHERE cart_id = ? AND product_id = ?
+        ");
+        $stmt->bind_param("iss", $newQuantity, $cart_id, $product_id);
+    } else {
+       
+        $stmt = $this->conn->prepare(" 
+            INSERT INTO `cart_items` (`cart_item_id`, `cart_id`, `product_id`, `quantity`) 
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->bind_param("sssi", $cart_item_id, $cart_id, $product_id, $quantity);
+    }
+
     if (!$stmt->execute()) {
         error_log("SQL Execute Failed (cart_items): " . $stmt->error);
         return false;
@@ -450,6 +479,60 @@ public function add_cart($user_id, $store_id, $product_id,  $quantity, $cart_id,
     $stmt->close();
 
     return true;
+}
+
+
+public function getUserCartWithProducts($user_id) {
+    $stmt = $this->conn->prepare("
+        SELECT 
+            c.cart_id,
+            s.store_name,
+            ci.product_id,
+            p.product_name,
+            p.image_url,
+            ci.quantity,
+            p.price
+        FROM cart c
+        JOIN user_store s ON c.store_id = s.store_id
+        JOIN cart_items ci ON c.cart_id = ci.cart_id
+        JOIN products p ON ci.product_id = p.product_id
+        WHERE c.user_id = ?
+        ORDER BY s.store_name, p.product_name;
+    ");
+    
+    $stmt->bind_param("s", $user_id);
+    
+    if (!$stmt->execute()) {
+        error_log("SQL Execute Failed (getUserCartWithProducts): " . $stmt->error);
+        return false;
+    }
+
+    $result = $stmt->get_result();
+    $cartData = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $storeName = $row['store_name'];
+        $cart_id = $row['cart_id'];
+
+        if (!isset($cartData[$cart_id])) {
+            $cartData[$cart_id] = [
+                'store_name' => $storeName,
+                'products' => []
+            ];
+        }
+
+        $cartData[$cart_id]['products_cart'][] = [
+            'product_id' => $row['product_id'],
+            'product_name' => $row['product_name'],
+            'quantity' => $row['quantity'],
+            'price' => $row['price'],
+            'image_url' => $row['image_url'] 
+        ];
+    }
+
+    $stmt->close();
+    
+    return $cartData;
 }
 
 
