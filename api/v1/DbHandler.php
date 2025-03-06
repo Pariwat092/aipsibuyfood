@@ -255,7 +255,7 @@ public function get_banner($image_path) {
    
     $stmt = $this->conn->prepare("INSERT INTO `imagebanner_paths` (`file_path`) VALUES (?)");
 
-    $stmt->bind_param("s", $image_path); 
+    $stmt->bind_param("S", $image_path); 
     if ($stmt->execute()) {
         return true;  
     } else {
@@ -265,6 +265,17 @@ public function get_banner($image_path) {
 
 
 
+
+public function delete_Products($id) {
+    $stmt = $this->conn->prepare("DELETE FROM products WHERE product_id = ?");
+    $stmt->bind_param("s", $id); // "i" หมายถึง integer
+
+    if ($stmt->execute()) {
+        return true;  
+    } else {
+        return false;  
+    }
+}
 
 
 
@@ -369,6 +380,72 @@ public function login_store($email_store, $password_store) {
 }
 
 
+public function add_order($order_id, $user_id, $total_price, $order_items) {
+    $this->conn->begin_transaction(); // เริ่มต้น Transaction
+
+    try {
+        // เพิ่มคำสั่งซื้อในตาราง orders
+        $stmt = $this->conn->prepare("
+            INSERT INTO `orders` (`op_id`, `user_id`, `total_price`, `payment_status`, `order_status`, `created_at`)
+            VALUES (?, ?, ?, 'pending', 'pending', NOW())
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Prepare statement failed for orders: " . $this->conn->error);
+        }
+
+        $stmt->bind_param("ssd", $order_id, $user_id, $total_price);
+
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to insert order: " . $stmt->error);
+        }
+
+        // เพิ่มรายการสินค้าในตาราง order_items
+        $stmt_items = $this->conn->prepare("
+            INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `quantity`, `price`)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+
+        if (!$stmt_items) {
+            throw new Exception("Prepare statement failed for order_items: " . $this->conn->error);
+        }
+
+        foreach ($order_items as $item) {
+            $order_item_id = $this->generateOrderItemId(); // สร้าง ID สำหรับ order_item
+            $product_id = $item['product_id'];
+            $quantity = $item['quantity'];
+            $price = $item['price'];
+
+            error_log("Order Item ID: " . $order_item_id);
+            error_log("Order ID: " . $order_id);
+            error_log("Product ID: " . $product_id);
+            error_log("Quantity: " . $quantity);
+            error_log("Price: " . $price);
+
+            $stmt_items->bind_param("sssii", $order_item_id, $order_id, $product_id, $quantity, $price);
+
+            if (!$stmt_items->execute()) {
+                throw new Exception("Failed to insert order item: " . $stmt_items->error);
+            }
+        }
+
+        $this->conn->commit(); // บันทึกการเปลี่ยนแปลงถ้าสำเร็จทั้งหมด
+        return true;
+
+    } catch (Exception $e) {
+        $this->conn->rollback(); // ยกเลิกการทำงานหากเกิดข้อผิดพลาด
+        error_log("Transaction rolled back: " . $e->getMessage()); // บันทึกข้อผิดพลาดใน log
+        return false;
+    }
+}
+
+// ฟังก์ชันสำหรับสร้าง Order Item ID
+private function generateOrderItemId() {
+    return 'OI' . bin2hex(random_bytes(8)); // สร้าง ID 18 ตัวอักษร
+}
+
+
+
 
 
 
@@ -400,6 +477,24 @@ public function create_product($pbid, $storeId, $productName, $price, $expiratio
    
     $stmt->bind_param("ssssssssii", $pbid, $storeId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId, $quantity, $isyellow);
     
+    if ($stmt->execute()) {
+        return true; 
+    } else {
+        error_log("SQL Execute Failed: " . $stmt->error);
+        return false;
+    }
+}
+
+public function update_product($productId, $productName, $price, $expirationDate, $productDescription, $image_path, $categoryId, $quantity, $isyellow) {
+
+    $sql = "UPDATE `products` SET `product_name`=?, `price`=?, `expiration_date`=?, `description`=?, 
+            `image_url`=IFNULL(?, `image_url`), `category_id`=?, `stock_quantity`=?, `is_yellow_sign`=? 
+            WHERE `product_id`=?";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("ssssssiis", $productName, $price, $expirationDate, $productDescription, 
+        $image_path, $categoryId, $quantity, $isyellow, $productId);
+
     if ($stmt->execute()) {
         return true; 
     } else {
@@ -535,7 +630,25 @@ public function getUserCartWithProducts($user_id) {
     return $cartData;
 }
 
+public function deleteProductFromCart($cart_id, $product_id) {
+    $stmt = $this->conn->prepare("
+        DELETE FROM cart_items 
+        WHERE cart_id = ? AND product_id = ?
+    ");
+    
+    $stmt->bind_param("ss", $cart_id, $product_id);
+    
+    if (!$stmt->execute()) {
+        error_log("SQL Execute Failed (deleteProductFromCart): " . $stmt->error);
+        return false;
+    }
 
+    $affectedRows = $stmt->affected_rows;
+    $stmt->close();
+
+    // ตรวจสอบว่ามีการลบข้อมูลจริงหรือไม่
+    return $affectedRows > 0;
+}
 
 
 
@@ -556,6 +669,8 @@ public function getpularstore () {
                 "longitude" => $res['longitude'],
                 "rating" => $res['rating'],
                 "store_image" => $res['store_image'],
+                "description" => $res['description'],
+                "store_address" => $res['store_address'],
             );
             $output[] = $response; 
         }

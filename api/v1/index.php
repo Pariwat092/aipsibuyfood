@@ -21,11 +21,23 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 
 
+
+
+define('OMISE_PUBLIC_KEY', 'pkey_test_62y5cae8l0id0e8x15k');
+define('OMISE_SECRET_KEY', 'skey_test_62hy9gjjvithz8bycfg');
+
+use Omise\OmiseCharge;
+use Omise\OmiseCustomer;
+use Omise\OmiseSource;
+
+
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Factory\AppFactory;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+
+
 
 $app = AppFactory::create();
 $app->setBasePath('/aipsibuyfood/api/v1');
@@ -224,11 +236,6 @@ $app->post('/ediphone', function($request, $response, $args) {
 
 
 
-
-
-
-
-
 function moveUploadedFile($directory, $uploadedFile) {
     
     $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
@@ -375,6 +382,75 @@ $app->post('/add_cart', function($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
+// เส้นทาง API สำหรับลบสินค้า
+$app->post('/delete_Products', function($request, $response, $args) {
+    $id = $request->getParsedBody()['product_id'];
+
+    $db = new DbHandler();
+    $result = $db->delete_Products($id);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "ลบสินค้าสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ลบสินค้าไม่สำเร็จ";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+// ฟังก์ชันสำหรับลบสินค้าใน DbHandler
+
+
+
+$app->post('/add_orders', function($request, $response, $args) {
+
+    $rawData = $request->getBody()->getContents(); // ดึงข้อมูลแบบ Raw
+    $data = json_decode($rawData, true); // แปลง JSON ให้เป็น Array
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        $data["res_code"] = "01";
+        $data["res_text"] = "รูปแบบ JSON ไม่ถูกต้อง";
+        return echoRespnse($response, 400, $data);
+    }
+
+    $user_id = $data['user_id'] ?? null;
+    $total_price = $data['total_price'] ?? null;
+    $order_items = $data['order_items'] ?? [];
+
+    if (!$user_id || !$total_price || empty($order_items)) {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ข้อมูลไม่ครบถ้วน กรุณาตรวจสอบการส่งข้อมูล";
+        return echoRespnse($response, 400, $data);
+    }
+
+    $order_id = generateOrderId();
+
+    $db = new DbHandler();
+    $result = $db->add_order($order_id, $user_id, $total_price, $order_items);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "สั่งซื้อสินค้าสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "สั่งซื้อสินค้าไม่สำเร็จ";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+function generateOrderId() {
+    return 'OP' . bin2hex(random_bytes(8)); 
+}
+
+
+
+
+
+
 
 $app->post('/getcartuser', function($request, $response, $args) {
 
@@ -389,7 +465,7 @@ $app->post('/getcartuser', function($request, $response, $args) {
         $data["carts"] = $result; 
     } else {
         $data["res_code"] = "01";
-        $data["res_text"] = "ดึงข้อมูลสินค้าในตะกร้าไม่สำเร็จ";
+        $data["res_text"] = "คุณยังไม่มีสินค้าในตะกร้า";
     }
 
     return echoRespnse($response, 200, $data);
@@ -412,6 +488,28 @@ function  generateidcart_item() {
     mt_rand(0, 0xffff)
 );
 }
+
+$app->post('/deletecartitem', function($request, $response, $args) {
+
+    $parsedBody = $request->getParsedBody();
+    $cart_id = $parsedBody['cart_id'];
+    $product_id = $parsedBody['product_id'];
+
+    $db = new DbHandler();
+    $result = $db->deleteProductFromCart($cart_id, $product_id);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "ลบสินค้าจากตะกร้าสำเร็จ";
+        $data["cart_id"] = $cart_id;
+        $data["product_id"] = $product_id;
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่สามารถลบสินค้าได้ หรือไม่มีสินค้านี้ในตะกร้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
 
 
 
@@ -716,6 +814,42 @@ function generatestoreId($prefix = 'p', $length = 12) {
     return $prefix . $randomString;
 }
 
+$app->post('/update_product', function($request, $response, $args) use ($app) {
+
+    $productId = $request->getParsedBody()['product_id'];
+    $productName = $request->getParsedBody()['productName'];
+    $price = $request->getParsedBody()['price'];
+    $expirationDays = $request->getParsedBody()['expirationDays'];
+    $productDescription = $request->getParsedBody()['productDescription'];
+    $uploadedFiles = $request->getUploadedFiles();
+    $image = $uploadedFiles['image'] ?? null;
+    $categoryId = $request->getParsedBody()['categoryId'];
+    $quantity = $request->getParsedBody()['quantity'];
+    $isyellow = $request->getParsedBody()['isyellow'];
+
+    $image_path = null;
+
+    if ($image && $image->getError() === UPLOAD_ERR_OK) {
+        $directory = __DIR__ . '/Image_products';  
+        $filename = moveUploadedFile($directory, $image);  
+        $image_path = '/aipsibuyfood/api/v1/Image_products/' . $filename;  
+    }
+
+    $db = new DbHandler();
+
+    $result = $db->update_product($productId, $productName, $price, $expirationDays, $productDescription, 
+        $image_path, $categoryId, $quantity, $isyellow
+    );
+
+    if ($result != NULL && $result == true) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แก้ไขสินค้าสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "แก้ไขสินค้าไม่สำเร็จ";
+    }
+    return echoRespnse($response, 200, $data);
+});
 
 // function_store /////
 
