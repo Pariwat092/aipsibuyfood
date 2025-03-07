@@ -472,6 +472,32 @@ $app->post('/getcartuser', function($request, $response, $args) {
 });
 
 
+$app->post('/get_orders', function($request, $response, $args) {
+
+    $user_id = $request->getParsedBody()['user_id'];
+
+    $db = new DbHandler();
+    $result = $db->getUserOrdersWithItems($user_id);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "ดึงข้อมูลคำสั่งซื้อสำเร็จ";
+        $data["orders"] = $result; 
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "คุณยังไม่มีคำสั่งซื้อในระบบ";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+
+
+
+
+
+
 function generateidcart() {
     return 'C' . sprintf('%04x-%04x-%04x',
         mt_rand(0, 0xffff), 

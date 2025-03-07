@@ -630,6 +630,68 @@ public function getUserCartWithProducts($user_id) {
     return $cartData;
 }
 
+
+
+public function getUserOrdersWithItems($user_id) {
+    $stmt = $this->conn->prepare("
+        SELECT 
+            o.op_id AS order_id,
+            o.total_price,
+            o.payment_status,
+            o.order_status,
+            o.created_at,
+            oi.product_id,
+            p.product_name,
+            p.image_url,
+            oi.quantity,
+            oi.price
+        FROM orders o
+        JOIN order_items oi ON o.op_id = oi.order_id
+        JOIN products p ON oi.product_id = p.product_id
+        WHERE o.user_id = ?
+        ORDER BY o.created_at DESC, p.product_name;
+    ");
+    
+    $stmt->bind_param("s", $user_id);
+    
+    if (!$stmt->execute()) {
+        error_log("SQL Execute Failed (getUserOrdersWithItems): " . $stmt->error);
+        return false;
+    }
+
+    $result = $stmt->get_result();
+    $orderData = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $orderId = $row['order_id'];
+
+        if (!isset($orderData[$orderId])) {
+            $orderData[$orderId] = [
+                'order_id' => $orderId,
+                'total_price' => $row['total_price'],
+                'payment_status' => $row['payment_status'],
+                'order_status' => $row['order_status'],
+                'created_at' => $row['created_at'],
+                'products' => []
+            ];
+        }
+
+        $orderData[$orderId]['products'][] = [
+            'product_id' => $row['product_id'],
+            'product_name' => $row['product_name'],
+            'quantity' => $row['quantity'],
+            'price' => $row['price'],
+            'image_url' => $row['image_url']
+        ];
+    }
+
+    $stmt->close();
+    
+    return array_values($orderData);
+}
+
+
+
 public function deleteProductFromCart($cart_id, $product_id) {
     $stmt = $this->conn->prepare("
         DELETE FROM cart_items 
