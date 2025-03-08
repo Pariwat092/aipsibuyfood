@@ -14,6 +14,7 @@ header('Access-Control-Max-Age: 1000');
 header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
 
 require_once './DbHandler.php';
+// require_once './create_payment.php';
 require_once '../include/Config.php';
 // require '../vendor/autoload.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -64,6 +65,37 @@ $app->get('/checkapi', function($request, $response, $args) use ($app) {
 });
 
 // user_customer//////////////////////
+
+
+// $app->get('/gen_qr', function($request, $response, $args) {
+//     $userid = $request->getQueryParams()['']; 
+
+//     $db = new DbHandler();
+
+  
+//     $status = $db->checkUserStatus($userid);
+
+//     if ($status === 1) {
+//         $data["res_code"] = "02";
+//         $data["res_text"] = "บัญชีนี้ได้รับการยืนยันตัวตนแล้ว";
+//     } else {
+//         $result = $db->verifyUser($userid);
+
+//         if ($result) {
+//             $data["res_code"] = "00";
+//             $data["res_text"] = "ยืนยันตัวตนสำเร็จ";
+//         } else {
+//             $data["res_code"] = "01";
+//             $data["res_text"] = "ไม่พบ ID นี้ในฐานข้อมูล หรือไม่สามารถยืนยันตัวตนได้";
+//         }
+//     }
+
+//     return echoRespnse($response, 200, $data);
+// });
+
+
+
+
 
 $app->post('/register', function($request, $response, $args) use ($app) {
     $username = $request->getParsedBody()['username'];
@@ -741,9 +773,6 @@ $app->post('/login_strore', function($request, $response, $args) {
 
 $app->post('/get_datastore', function ($request, $response, $args) {
     $id = $request->getParsedBody()['store_id'] ?? null;
-
-   
-    
     if (!$id) {
         $data = [
             "res_code" => "02",
@@ -752,8 +781,6 @@ $app->post('/get_datastore', function ($request, $response, $args) {
         return echoRespnse($response, 200, $data);
     }
     
-    
-
     $db = new DbHandler();
     $result = $db->get_datauseassar($id);
 
@@ -773,7 +800,66 @@ $app->post('/get_datastore', function ($request, $response, $args) {
     return echoRespnse($response, 200, $data);
 });
 
+$app->post('/get_datastoreinformation', function ($request, $response, $args) {
+    $id = $request->getParsedBody()['store_id'] ?? null;
+    if (!$id) {
+        $data = [
+            "res_code" => "02",
+            "res_text" => "ไม่พบ store_id"
+        ];
+        return echoRespnse($response, 200, $data);
+    }
+    
+    $db = new DbHandler();
+    $result = $db->get_datauseassarinformation($id);
 
+    if ($result) {
+        $data = [
+            "res_code" => "00",
+            "res_text" => "ดึงข้อมูลสำเร็จ",
+            "datainformation" => $result  
+        ];
+    } else {
+        $data = [
+            "res_code" => "01",
+            "res_text" => "ดึงข้อมูลไม่สำเร็จ"
+        ];
+    }
+
+    return echoRespnse($response, 200, $data);
+});
+
+
+// API สำหรับดึงข้อมูล Order ที่เกี่ยวข้องกับ store_id
+$app->post('/get_orders_by_store', function ($request, $response, $args) {
+    $store_id = $request->getParsedBody()['store_id'] ?? null;
+
+    if (!$store_id) {
+        $data = [
+            "res_code" => "02",
+            "res_text" => "ไม่พบ store_id"
+        ];
+        return echoRespnse($response, 200, $data);
+    }
+
+    $db = new DbHandler();
+    $result = $db->get_orders_with_products($store_id);
+
+    if ($result) {
+        $data = [
+            "res_code" => "00",
+            "res_text" => "ดึงข้อมูลคำสั่งซื้อสำเร็จ",
+            "orders" => $result  
+        ];
+    } else {
+        $data = [
+            "res_code" => "01",
+            "res_text" => "ไม่พบคำสั่งซื้อสำหรับร้านนี้"
+        ];
+    }
+
+    return echoRespnse($response, 200, $data);
+});
 
 
 

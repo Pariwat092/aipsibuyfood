@@ -11,10 +11,23 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 define('OMISE_PUBLIC_KEY', 'pkey_test_62y5mnseze4nbq0negp');
 define('OMISE_SECRET_KEY', 'skey_test_62y5momcxu2at1pmrf1');
 
+header('Content-Type: application/json; charset=utf-8');
+
 try {
+    // รับจำนวนเงินจากการร้องขอ (รับจาก Flutter ผ่าน POST)
+    $amount = isset($_POST['amount']) ? intval($_POST['amount']) : 0;
+    
+    if ($amount <= 0) {
+        echo json_encode([
+            'status' => 'failed',
+            'message' => 'Invalid amount'
+        ]);
+        exit;
+    }
+
     // สร้าง Source ใหม่สำหรับ PromptPay
     $source = OmiseSource::create([
-        'amount' => 50000, // จำนวนเงินในหน่วยสตางค์ (500.00 บาท)
+        'amount' => $amount, // จำนวนเงินในหน่วยสตางค์
         'currency' => 'THB',
         'type' => 'promptpay', // ประเภทการชำระเงินเป็น PromptPay
     ]);
@@ -24,9 +37,9 @@ try {
 
     // สร้าง Charge ใหม่โดยใช้ Source ID ที่เพิ่งสร้างขึ้น
     $charge = OmiseCharge::create([
-        'amount' => 50000, // จำนวนเงินในหน่วยสตางค์
+        'amount' => $amount, // จำนวนเงินในหน่วยสตางค์
         'currency' => 'THB',
-        'source' => $sourceId, // ใช้ Source ID ที่ได้มาจากการสร้าง Source ข้างต้น
+        'source' => $sourceId, 
         'return_uri' => 'http://localhost/aipsibuyfood/api/v1/callback.php',
         'metadata' => [
             'order_id' => 'ORDER123',
@@ -35,22 +48,23 @@ try {
     ]);
 
     if ($charge['status'] === 'pending' && !empty($charge['authorize_uri'])) {
-        echo "<h1>Omise Charge Created Successfully!</h1>";
-        echo "<p>Charge Status: " . $charge['status'] . "</p>";
-        echo "<p>Charge ID: " . $charge['id'] . "</p>";
-        
-        echo "<h2>สแกน QR Code ชำระเงินผ่าน PromptPay:</h2>";
-    
-        // เปลี่ยนการแสดงผล QR Code ให้ถูกต้อง
-        echo "<a href='" . $charge['authorize_uri'] . "' target='_blank'>";
-        echo "<img src='https://api.qrserver.com/v1/create-qr-code/?data=" . urlencode($charge['authorize_uri']) . "&size=300x300' alt='QR Code' style='width:300px;height:300px;'>";
-        echo "</a>";
-    
-        echo "<br><a href='" . $charge['authorize_uri'] . "' target='_blank'>หรือคลิกที่นี่เพื่อชำระเงินผ่าน PromptPay</a>";
+        // ส่งข้อมูลเป็น JSON กลับไปยัง Flutter
+        echo json_encode([
+            'status' => 'success',
+            'charge_id' => $charge['id'],
+            'qr_code_url' => "https://api.qrserver.com/v1/create-qr-code/?data=" . urlencode($charge['authorize_uri']) . "&size=300x300",
+            'authorize_uri' => $charge['authorize_uri']
+        ]);
     } else {
-        echo "ไม่สามารถสร้าง Charge ได้: " . $charge['failure_message'];
+        echo json_encode([
+            'status' => 'failed',
+            'message' => $charge['failure_message'] ?? 'Unable to create charge'
+        ]);
     }
 
 } catch (Exception $e) {
+    echo json_encode([
+        'status' => 'failed',
+        'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+    ]);
 }
-?>

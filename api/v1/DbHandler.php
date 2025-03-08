@@ -199,6 +199,62 @@ public function get_datauseassar($id) {
     }
 }
 
+public function get_orders_by_store($store_id) {
+    $sql = "SELECT 
+                o.op_id AS order_id,
+                o.total_price,
+                o.payment_status,
+                o.order_status,
+                p.store_id,
+                s.store_name,
+                u.username AS customer_name,
+                u.address AS delivery_address,
+                u.phone AS customer_phone
+            FROM orders o
+            JOIN order_items oi ON o.op_id = oi.order_id
+            JOIN products p ON oi.product_id = p.product_id
+            JOIN user_store s ON p.store_id = s.store_id
+            JOIN user_customer u ON o.user_id = u.id
+            WHERE p.store_id = ?
+            GROUP BY o.op_id, p.store_id";
+    
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("s", $store_id);
+    $stmt->execute();
+    $result = $stmt->get_result(); 
+
+    if ($result->num_rows > 0) {
+        $orders = [];
+        while ($row = $result->fetch_assoc()) {
+            $orders[] = $row;
+        }
+        $stmt->close();
+        return $orders;
+    } else {
+        $stmt->close();
+        return false;
+    }
+}
+
+
+
+public function get_datauseassarinformation($id) {
+    $stmt = $this->conn->prepare("SELECT store_name, owner_name,  email, store_phone FROM `user_store` WHERE `store_id` = ?");
+    $stmt->bind_param("s", $id);
+    $stmt->execute();
+    $result = $stmt->get_result(); 
+
+    if ($result->num_rows > 0) {
+        $data = $result->fetch_assoc();
+        $stmt->close();
+        return $data;
+    } else {
+        $stmt->close();
+        return false;
+    }
+}
+
+
 
 
 public function get_datauser($id) {
@@ -630,8 +686,6 @@ public function getUserCartWithProducts($user_id) {
     return $cartData;
 }
 
-
-
 public function getUserOrdersWithItems($user_id) {
     $stmt = $this->conn->prepare("
         SELECT 
@@ -689,6 +743,76 @@ public function getUserOrdersWithItems($user_id) {
     
     return array_values($orderData);
 }
+
+public function get_orders_with_products($store_id) {
+    $sql = "SELECT 
+                o.op_id AS order_id,
+                o.total_price,
+                o.payment_status,
+                o.order_status,
+                pr.store_id,
+                s.store_name,
+                u.username AS customer_name,
+                u.address AS delivery_address,
+                u.phone AS customer_phone,
+                pr.product_name,
+                pr.image_url,
+                oi.quantity,
+                oi.price AS item_price
+            FROM orders o
+            JOIN order_items oi ON o.op_id = oi.order_id
+            JOIN products pr ON oi.product_id = pr.product_id
+            JOIN user_store s ON pr.store_id = s.store_id
+            JOIN user_customer u ON o.user_id = u.id
+            WHERE pr.store_id = ?
+            ORDER BY o.op_id";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("s", $store_id);
+    $stmt->execute();
+    $result = $stmt->get_result(); 
+
+    if ($result->num_rows > 0) {
+        $orders = [];
+        while ($row = $result->fetch_assoc()) {
+            $order_id = $row['order_id'];
+
+            // จัดกลุ่มสินค้าในแต่ละ Order
+            if (!isset($orders[$order_id])) {
+                $orders[$order_id] = [
+                    'order_id' => $row['order_id'],
+                    'total_price' => $row['total_price'],
+                    'payment_status' => $row['payment_status'],
+                    'order_status' => $row['order_status'],
+                    'store_id' => $row['store_id'],
+                    'store_name' => $row['store_name'],
+                    'customer_name' => $row['customer_name'],
+                    'delivery_address' => $row['delivery_address'],
+                    'customer_phone' => $row['customer_phone'],
+                    'products' => []
+                ];
+            }
+
+            // เพิ่มสินค้าที่เกี่ยวข้องในแต่ละ Order พร้อมรูปภาพ
+            $orders[$order_id]['products'][] = [
+                'product_name' => $row['product_name'],
+                'quantity' => $row['quantity'],
+                'item_price' => $row['item_price'],
+                'image_url' => $row['image_url']
+            ];
+        }
+        $stmt->close();
+
+        // รีเซ็ตคีย์ของอาร์เรย์ให้เป็นลำดับปกติ
+        return array_values($orders);
+    } else {
+        $stmt->close();
+        return false;
+    }
+}
+
+
+
 
 
 
