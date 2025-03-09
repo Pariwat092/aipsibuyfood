@@ -830,6 +830,35 @@ $app->post('/get_datastoreinformation', function ($request, $response, $args) {
 });
 
 
+$app->post('/delete_user', function($request, $response, $args) use ($app) {
+    $userId = $request->getParsedBody()['user_id'];
+
+    $db = new DbHandler();
+
+    // ตรวจสอบว่าผู้ใช้มีอยู่ในระบบหรือไม่
+    $userExists = $db->getUserById($userId);
+
+    if (!$userExists) {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่พบข้อมูลผู้ใช้งาน";
+        return echoRespnse($response, 404, $data);
+    }
+
+    // ลบข้อมูลผู้ใช้งานออกจากระบบ
+    $result = $db->deleteUser($userId);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "ลบบัญชีผู้ใช้สำเร็จ";
+    } else {
+        $data["res_code"] = "02";
+        $data["res_text"] = "ไม่สามารถลบบัญชีผู้ใช้ได้";
+    }
+    return echoRespnse($response, 200, $data);
+});
+
+
+
 // API สำหรับดึงข้อมูล Order ที่เกี่ยวข้องกับ store_id
 $app->post('/get_orders_by_store', function ($request, $response, $args) {
     $store_id = $request->getParsedBody()['store_id'] ?? null;
@@ -925,6 +954,139 @@ function generatestoreId($prefix = 'p', $length = 12) {
     $randomString = strtoupper(bin2hex(random_bytes($length / 2)));
     return $prefix . $randomString;
 }
+
+$app->post('/update_order_status', function($request, $response, $args) use ($app) {
+    $orderId = $request->getParsedBody()['order_id'];
+    $storeId = $request->getParsedBody()['store_id'];
+    $orderStatus = $request->getParsedBody()['order_status']; 
+
+    $db = new DbHandler();
+
+    // ดึงข้อมูลออเดอร์จากฐานข้อมูล
+    $orderInfo = $db->getOrderById($orderId);
+
+    // ตรวจสอบว่าออเดอร์มีอยู่จริงหรือไม่
+    if (!$orderInfo) {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่พบข้อมูลออเดอร์";
+        return echoRespnse($response, 404, $data);
+    }
+
+    // ตรวจสอบสิทธิ์ของร้านค้า
+    $isAuthorized = $db->isOrderOwnedByStore($orderId, $storeId);
+    if (!$isAuthorized) {
+        $data["res_code"] = "03";
+        $data["res_text"] = "คุณไม่มีสิทธิ์ในการจัดการออเดอร์นี้";
+        return echoRespnse($response, 403, $data);
+    }
+
+    // กำหนดเงื่อนไขการเปลี่ยนสถานะออเดอร์
+    $validTransitions = [
+        'pending' => ['processing', 'cancel'],
+        'processing' => ['completed', 'cancel'],
+        'completed' => [],
+        'cancel' => []
+    ];
+
+    // สถานะปัจจุบันของออเดอร์
+    $currentStatus = $orderInfo['order_status'];
+
+    // ตรวจสอบการเปลี่ยนสถานะที่ถูกต้อง
+    if (!in_array($orderStatus, $validTransitions[$currentStatus])) {
+        $data["res_code"] = "02";
+        $data["res_text"] = "ไม่สามารถเปลี่ยนสถานะจาก $currentStatus ไปยัง $orderStatus ได้";
+        return echoRespnse($response, 400, $data);
+    }
+
+    // อัปเดตสถานะออเดอร์
+    $result = $db->updateOrderStatus($orderId, $orderStatus);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "อัปเดตสถานะออเดอร์สำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่สามารถอัปเดตสถานะออเดอร์ได้";
+    }
+    return echoRespnse($response, 200, $data);
+});
+
+
+$app->post('/update_payment_status', function($request, $response, $args) use ($app) {
+    $orderId = $request->getParsedBody()['order_id'];
+    $paymentStatus = $request->getParsedBody()['payment_status']; 
+
+    $validStatuses = ['pending', 'paid', 'failed'];
+    
+    
+    if (!in_array($paymentStatus, $validStatuses)) {
+        $data["res_code"] = "01";
+        $data["res_text"] = "สถานะการชำระเงินไม่ถูกต้อง";
+        return echoRespnse($response, 400, $data);
+    }
+
+    $db = new DbHandler();
+
+    $orderInfo = $db->getOrderById($orderId);
+    if (!$orderInfo) {
+        $data["res_code"] = "02";
+        $data["res_text"] = "ไม่พบข้อมูลออเดอร์";
+        return echoRespnse($response, 404, $data);
+    }
+
+    
+    $result = $db->updatePaymentStatus($orderId, $paymentStatus);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "อัปเดตสถานะการชำระเงินสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่สามารถอัปเดตสถานะการชำระเงินได้";
+    }
+    return echoRespnse($response, 200, $data);
+});
+
+
+$app->post('/update_store', function($request, $response, $args) use ($app) {
+    $storeId = $request->getParsedBody()['store_id'];
+    $storeName = $request->getParsedBody()['store_name'];
+    $storeAddress = $request->getParsedBody()['store_address'];
+    $storeDescription = $request->getParsedBody()['description'];
+    $uploadedFiles = $request->getUploadedFiles();
+    $image = $uploadedFiles['store_image'] ?? null;
+
+    $image_path = null;
+
+    
+    if ($image && $image->getError() === UPLOAD_ERR_OK) {
+        $directory = __DIR__ . '/image_store_all';  
+        $filename = moveUploadedFile($directory, $image);  
+        $image_path = '/aipsibuyfood/api/v1/image_store_all/' . $filename;  
+    }
+
+    $db = new DbHandler();
+
+    $isStoreExist = $db->isStoreExist($storeId);
+
+    if (!$isStoreExist) {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่พบร้านค้าที่ต้องการแก้ไข";
+        return echoRespnse($response, 404, $data);
+    }
+
+
+    $result = $db->update_store($storeId, $storeName, $storeAddress, $storeDescription, $image_path);
+
+    if ($result) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แก้ไขข้อมูลร้านค้าสำเร็จ";
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "แก้ไขข้อมูลร้านค้าไม่สำเร็จ";
+    }
+    return echoRespnse($response, 200, $data);
+});
 
 $app->post('/update_product', function($request, $response, $args) use ($app) {
 

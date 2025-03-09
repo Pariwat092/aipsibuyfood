@@ -502,16 +502,88 @@ private function generateOrderItemId() {
 
 
 
+public function isStoreExist($storeId) {
+    $sql = "SELECT 1 FROM user_store WHERE store_id = ?";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("s", $storeId);
+    $stmt->execute();
+    $stmt->store_result();
+    return $stmt->num_rows > 0;
+}
+
+public function update_store($storeId, $storeName, $storeAddress, $storeDescription, $image_path) {
+    $sql = "UPDATE `user_store` SET `store_name`=?, `store_address`=?, `description`=?, 
+            `store_image`=IFNULL(?, `store_image`), `updated_at`=NOW() WHERE `store_id`=?";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("sssss", $storeName, $storeAddress, $storeDescription, 
+        $image_path, $storeId);
+
+    if ($stmt->execute()) {
+        return true; 
+    } else {
+        error_log("SQL Execute Failed: " . $stmt->error);
+        return false;
+    }
+}
 
 
 
+public function isOrderOwnedByStore($orderId, $storeId) {
+    $sql = "SELECT 1 
+            FROM orders o
+            JOIN order_items oi ON o.op_id = oi.order_id
+            JOIN products p ON oi.product_id = p.product_id
+            JOIN user_store s ON p.store_id = s.store_id
+            WHERE o.op_id = ? AND s.store_id = ?";
+
+    $stmt = $this->conn->prepare($sql);
+    if (!$stmt) {
+        die("SQL Error: " . $this->conn->error);
+    }
+    
+    $stmt->bind_param("ss", $orderId, $storeId);
+    $stmt->execute();
+    $stmt->store_result();
+    return $stmt->num_rows > 0;
+}
 
 
 
+public function updateOrderStatus($orderId, $orderStatus) {
+    $sql = "UPDATE orders SET order_status = ?, updated_at = NOW() WHERE op_id = ?";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("ss", $orderStatus, $orderId);
+    if ($stmt->execute()) {
+        return true;
+    } else {
+        error_log("SQL Execute Failed: " . $stmt->error);
+        return false;
+    }
+}
 
 
+public function getOrderById($orderId) {
+    $sql = "SELECT payment_status, order_status FROM orders WHERE op_id = ?";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("s", $orderId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_assoc();
+}
 
 
+public function updatePaymentStatus($orderId, $paymentStatus) {
+    $sql = "UPDATE orders SET payment_status = ?, updated_at = NOW() WHERE op_id = ?";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("ss", $paymentStatus, $orderId);
+    if ($stmt->execute()) {
+        return true;
+    } else {
+        error_log("SQL Execute Failed: " . $stmt->error);
+        return false;
+    }
+}
 
 
 
@@ -630,6 +702,23 @@ public function add_cart($user_id, $store_id, $product_id, $quantity, $cart_id, 
     $stmt->close();
 
     return true;
+}
+
+
+public function getUserById($userId) {
+    $sql = "SELECT * FROM user_customer WHERE id = ?";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("s", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_assoc();
+}
+
+public function deleteUser($userId) {
+    $sql = "DELETE FROM user_customer WHERE id = ?";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bind_param("s", $userId);
+    return $stmt->execute();
 }
 
 
@@ -758,14 +847,20 @@ public function get_orders_with_products($store_id) {
                 pr.product_name,
                 pr.image_url,
                 oi.quantity,
-                oi.price AS item_price
+                oi.price AS item_price,
+                o.updated_at
             FROM orders o
             JOIN order_items oi ON o.op_id = oi.order_id
             JOIN products pr ON oi.product_id = pr.product_id
             JOIN user_store s ON pr.store_id = s.store_id
             JOIN user_customer u ON o.user_id = u.id
-            WHERE pr.store_id = ?
-            ORDER BY o.op_id";
+            WHERE pr.store_id = ? 
+            AND o.order_status != '' 
+            AND (o.order_status != 'completed' 
+                 OR TIMESTAMPDIFF(MINUTE, o.updated_at, NOW()) <= 3)
+            ORDER BY 
+                CASE WHEN o.order_status = 'completed' THEN 1 ELSE 0 END, 
+                o.updated_at DESC";
 
     $stmt = $this->conn->prepare($sql);
     $stmt->bind_param("s", $store_id);
@@ -777,7 +872,6 @@ public function get_orders_with_products($store_id) {
         while ($row = $result->fetch_assoc()) {
             $order_id = $row['order_id'];
 
-            // จัดกลุ่มสินค้าในแต่ละ Order
             if (!isset($orders[$order_id])) {
                 $orders[$order_id] = [
                     'order_id' => $row['order_id'],
@@ -793,7 +887,6 @@ public function get_orders_with_products($store_id) {
                 ];
             }
 
-            // เพิ่มสินค้าที่เกี่ยวข้องในแต่ละ Order พร้อมรูปภาพ
             $orders[$order_id]['products'][] = [
                 'product_name' => $row['product_name'],
                 'quantity' => $row['quantity'],
@@ -803,13 +896,14 @@ public function get_orders_with_products($store_id) {
         }
         $stmt->close();
 
-        // รีเซ็ตคีย์ของอาร์เรย์ให้เป็นลำดับปกติ
         return array_values($orders);
     } else {
         $stmt->close();
         return false;
     }
 }
+
+
 
 
 
