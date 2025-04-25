@@ -1359,6 +1359,30 @@ $app->post('/get_data_products_isstore', function($request, $response, $args) us
     return echoRespnse($response, 200, $data);
 });
 
+
+$app->post('/user_data_products_isstore', function($request, $response, $args) use ($app) {
+   
+    $data = $request->getParsedBody();
+
+    
+    $store_id = $data['store_id'] ?? '';
+
+    
+    $db = new DbHandler();
+    $result = $db->get_data_products_isstore($store_id);
+
+    $data = array();
+    if ($result != NULL) {
+        $data["res_code"] = "00";
+        $data["res_text"] = "แสดงข้อมูลสำเร็จ";
+        $data["userisstoreproducts"] = $result;
+    } else {
+        $data["res_code"] = "01";
+        $data["res_text"] = "ไม่มีข้อมูลสินค้า";
+    }
+
+    return echoRespnse($response, 200, $data);
+});
 // function_app
 
 
