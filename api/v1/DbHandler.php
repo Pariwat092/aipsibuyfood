@@ -1381,6 +1381,9 @@ public function searchProducts($searchTerm) {
         FROM products p
         JOIN user_store us ON p.store_id = us.store_id
         WHERE p.product_name LIKE ?
+        AND 100 < p.price;
+
+        
     ");
     
     $searchTerm = "%" . $searchTerm . "%";
